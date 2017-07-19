@@ -63,6 +63,8 @@ CoogleIOTWebserver& CoogleIOTWebserver::initializePages()
 {
 	webServer->on("/", std::bind(&CoogleIOTWebserver::handleRoot, this));
 	webServer->on("/css", std::bind(&CoogleIOTWebserver::handleCSS, this));
+	webServer->on("/save", std::bind(&CoogleIOTWebserver::handleSubmit, this));
+	webServer->onNotFound(std::bind(&CoogleIOTWebserver::handle404, this));
 
 	return *this;
 }
@@ -123,10 +125,6 @@ void CoogleIOTWebserver::loop()
 
 void CoogleIOTWebserver::handleRoot()
 {
-	if(iot->serialEnabled()) {
-		Serial.println("Sending Root Content..");
-	}
-
     webServer->send_P(200, "text/html", WEBPAGE_Home);
 }
 
@@ -136,6 +134,11 @@ void CoogleIOTWebserver::handleCSS()
 }
 
 void CoogleIOTWebserver::handle404()
+{
+	webServer->send_P(404, "text/html", WEBPAGE_NOTFOUND);
+}
+
+void CoogleIOTWebserver::handleSubmit()
 {
 
 }
