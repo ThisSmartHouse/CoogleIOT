@@ -26,19 +26,37 @@
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 
+#include "CoogleIOT.h"
+
+#include "webpages/home.h"
+#include "webpages/mini_css_default.h"
+
 #define COOGLEIOT_WEBSERVER_PORT 80
 #define COOGLEIOT_WS_MDNS_DOMAIN "coogleiot"
+
+class CoogleIOT;
 
 class CoogleIOTWebserver
 {
 	public:
-		CoogleIOTWebserver(CoogleIOT &);
-		void initialize();
+		CoogleIOTWebserver(CoogleIOT& _iot);
+		CoogleIOTWebserver(CoogleIOT& _iot, int port);
+
+		CoogleIOTWebserver& setIOT(CoogleIOT& _iot);
+		CoogleIOTWebserver& setWebserver(ESP8266WebServer* server);
+		CoogleIOTWebserver& setServerPort(int port);
+
+		bool initialize();
 		void handleRoot();
 		void handle404();
+		void handleCSS();
 		void loop();
+	protected:
+		CoogleIOTWebserver& initializePages();
 	private:
-		ESP8266WebServer *webServer;
+		ESP8266WebServer* webServer;
+		CoogleIOT* iot;
+		int serverPort = 80;
 };
 
 #endif

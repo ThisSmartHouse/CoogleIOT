@@ -45,7 +45,9 @@
 #include <PubSubClient.h>
 
 #include "CoogleEEPROM.h"
-#include "CoogleIOT_Webserver.h"
+#include "CoogleIOTWebserver.h"
+
+class CoogleIOTWebserver;
 
 class CoogleIOT
 {
@@ -54,11 +56,14 @@ class CoogleIOT
         CoogleIOT();
         void loop();
         bool initialize();
-        void enableSerial(int);
-        void enableSerial();
+        CoogleIOT& enableSerial(int);
+        CoogleIOT& enableSerial();
         PubSubClient getMQTTClient();
         bool serialEnabled();
-        
+        CoogleIOT& flashStatus(int);
+        CoogleIOT& flashStatus(int, int);
+        CoogleIOT& flashSOS();
+        std::string replace_all(std::string, const std::string&, const std::string&);
     private:
         bool _serial;
         int _statusPin;
@@ -74,10 +79,10 @@ class CoogleIOT
         CoogleEEProm eeprom;
         CoogleIOTWebserver *webServer;
         
-        void flashStatus(int);
-        void flashStatus(int, int);
-        void flashSOS();
+        bool mqttClientActive = false;
+
         void initializeLocalAP();
+        void enableConfigurationMode();
         bool connectToSSID();
         bool initializeMQTT();
         bool connectToMQTT();

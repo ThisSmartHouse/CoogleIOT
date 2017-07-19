@@ -22,12 +22,13 @@
 
 #include "CoogleIOT.h"
 
+#define COOGLEIOT_DEBUG
+
 CoogleIOT::CoogleIOT(int statusPin)
 {
     _statusPin = statusPin;
     _serial = false;
 
-     webServer = new CoogleIOTWebserver(this);
 }
 
 CoogleIOT::CoogleIOT()
@@ -42,31 +43,41 @@ bool CoogleIOT::serialEnabled()
 
 void CoogleIOT::loop()
 {
-	if(!mqttClient.connected()) {
-		if(!connectToMQTT()) {
-			return;
+	if(mqttClientActive) {
+		if(!mqttClient.connected()) {
+			if(!connectToMQTT()) {
+				flashSOS();
+				return;
+			}
 		}
+
+		mqttClient.loop();
 	}
 	
-	mqttClient.loop();
+	webServer->loop();
 }
 
-void CoogleIOT::flashSOS()
+CoogleIOT& CoogleIOT::flashSOS()
 {
 	for(int i = 0; i < 3; i++) {
-		flashStatus(100, 3);
+		flashStatus(200, 3);
+		delay(1000);
 		flashStatus(500, 3);
-		flashStatus(100, 3);
+		delay(1000);
+		flashStatus(200, 3);
 		delay(5000);
 	}
+	
+	return *this;
 }
 
-void CoogleIOT::flashStatus(int speed)
+CoogleIOT& CoogleIOT::flashStatus(int speed)
 {
 	flashStatus(speed, 5);
+	return *this;
 }
 
-void CoogleIOT::flashStatus(int speed, int repeat)
+CoogleIOT& CoogleIOT::flashStatus(int speed, int repeat)
 {
 	if(_statusPin > -1) {
 		for(int i = 0; i < repeat; i++) {
@@ -79,6 +90,7 @@ void CoogleIOT::flashStatus(int speed, int repeat)
 		digitalWrite(_statusPin, HIGH);
 	}
 	
+	return *this;
 }
 
 bool CoogleIOT::initialize()
@@ -103,30 +115,56 @@ bool CoogleIOT::initialize()
 		eeprom.reset();
 	}
 	
-	initializeLocalAP();
-	
 	if(!connectToSSID()) {
 		if(_serial) {
-			Serial.println("Failed to connect to AP, cannot continue.");
+			Serial.println("Failed to connect to AP");
 		}
-		return false;
-	}
+	} else {
 	
-	if(!initializeMQTT()) {
-		if(_serial) {
-			Serial.println("Failed to connect to MQTT, cannot continue");
+		if(!initializeMQTT()) {
+			if(_serial) {
+				Serial.println("Failed to connect to MQTT");
+			}
 		}
-		
-		return false;
+
 	}
-	
+
+	enableConfigurationMode();
+
 	return true;
+}
+
+void CoogleIOT::enableConfigurationMode()
+{
+	if(_serial) {
+		Serial.println("Enabling Configuration Mode");
+	}
+
+	initializeLocalAP();
+
+	if(_serial) {
+		Serial.println("CIOT: Creating Webserver");
+	}
+
+	webServer = new CoogleIOTWebserver(*this);
+
+	if(!webServer->initialize()) {
+		if(_serial) {
+			Serial.println("Failed to initialize Web Server");
+		}
+
+		flashSOS();
+	}
 }
 
 void CoogleIOT::initializeLocalAP()
 {
 	char localAPName[50];
 	char localAPPassword[COOGLEIOT_AP_PASSWORD_MAXLEN];
+
+	IPAddress apLocalIP(192,168,0,1);
+	IPAddress apSubnetMask(255,255,255,0);
+	IPAddress apGateway(192,168,0,1);
 	
 	if(!eeprom.readString(COOGLEIOT_AP_PASSWORD_ADDR, localAPPassword, COOGLEIOT_AP_PASSWORD_MAXLEN)) {
 		
@@ -151,7 +189,21 @@ void CoogleIOT::initializeLocalAP()
 		
 	}
 
-	sprintf(localAPName, COOGLEIOT_AP "%d", random(100000, 999999));
+	if(!eeprom.readString(COOGLEIOT_AP_NAME_ADDR, localAPName, COOGLEIOT_AP_NAME_MAXLEN)) {
+
+		if(_serial) {
+			Serial.println("Failed to read from EEPROM for AP Name");
+		}
+	}
+
+	if(strcmp(localAPName, "") == 0) {
+		if(_serial) {
+			Serial.println("No AP Name found in memory. Auto-generating AP name");
+		}
+
+		//sprintf(localAPName, COOGLEIOT_AP "%d", (int)random(100000, 999999));
+		sprintf(localAPName, COOGLEIOT_AP "%d", 778798);
+	}
 	
 	if(_serial) {
 		Serial.println("Initializing WiFi");
@@ -160,6 +212,7 @@ void CoogleIOT::initializeLocalAP()
 	}
 
 	WiFi.mode(WIFI_AP_STA);
+	WiFi.softAPConfig(apLocalIP, apGateway, apSubnetMask);
 	WiFi.softAP(localAPName, localAPPassword);
 	
 	if(_serial) {
@@ -183,6 +236,7 @@ bool CoogleIOT::initializeMQTT()
 		
 		if(_serial) {
 			Serial.println("No MQTT Hostname specified. Cannot continue");
+			mqttClientActive = false;
 			return false;
 		}
 	}
@@ -255,6 +309,10 @@ bool CoogleIOT::connectToMQTT()
 		return true;
 	}
 	
+	if(strcmp(mqttHostname, "") == 0) {
+		return false;
+	}
+
 	if(_serial) {
 		Serial.println("Attempting to connect to MQTT Server");
 		Serial.print("Server: ");
@@ -282,14 +340,17 @@ bool CoogleIOT::connectToMQTT()
 	}
 	
 	if(!mqttClient.connected()) {
+
 		if(_serial) {
 			Serial.println("Failed to connect to MQTT Server! Aborting.");
-			return false;
 		}
 		
 		flashSOS();
+		mqttClientActive = false;
+		return false;
 	}
 	
+	mqttClientActive = true;
 	return true;
 }
 
@@ -300,7 +361,7 @@ bool CoogleIOT::connectToSSID()
 
 	flashStatus(COOGLEIOT_STATUS_WIFI_INIT);
 	
-	if(!eeprom.readString(COOGLEIOT_AP_NAME_ADDR, remoteAPName, COOGLEIOT_AP_NAME_MAXLEN)) {
+	if(!eeprom.readString(COOGLEIOT_REMOTE_AP_NAME_ADDR, remoteAPName, COOGLEIOT_REMOTE_AP_NAME_MAXLEN)) {
 		if(_serial) {
 			Serial.println("Failed to read Remote AP Name from EEPROM");
 		}
@@ -369,12 +430,12 @@ bool CoogleIOT::connectToSSID()
 	return true;
 }
 
-void CoogleIOT::enableSerial()
+CoogleIOT& CoogleIOT::enableSerial()
 {
 	return enableSerial(15200);
 }
 
-void CoogleIOT::enableSerial(int baud)
+CoogleIOT& CoogleIOT::enableSerial(int baud)
 {
     if(!Serial) {
 
@@ -387,5 +448,19 @@ void CoogleIOT::enableSerial(int baud)
     }
 
     _serial = true;
+    return *this;
+}
+
+std::string replace_all(std::string str, const std::string& remove, const std::string& insert)
+{
+	std::string::size_type pos = 0;
+
+	while ((pos = str.find(remove, pos)) != std::string::npos)
+	{
+		str.replace(pos, remove.size(), insert);
+		pos++;
+	}
+
+	return str;
 }
 
