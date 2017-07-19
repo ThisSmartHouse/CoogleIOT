@@ -125,6 +125,8 @@ void CoogleIOTWebserver::loop()
 
 void CoogleIOTWebserver::handleRoot()
 {
+	String page(FPSTR(WEBPAGE_Home));
+
     webServer->send_P(200, "text/html", WEBPAGE_Home);
 }
 
@@ -142,3 +144,4 @@ void CoogleIOTWebserver::handleSubmit()
 {
 
 }
+

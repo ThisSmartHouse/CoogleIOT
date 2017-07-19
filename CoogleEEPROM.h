@@ -31,6 +31,7 @@
 class CoogleEEProm
 {
 	public:
+		void initialize(size_t);
 		void initialize();
 		void reset();
 		void fill(int, int, byte);
@@ -40,9 +41,11 @@ class CoogleEEProm
 		bool readBytes(int, byte[], int);
 		bool writeInt(int, int);
 		bool readInt(int, int *);
+		bool writeString(int address, String str);
 		bool writeString(int, const char *);
 		bool readString(int, char *, int);
 		bool isApp(const byte *);
+		bool setApp(const byte *);
 };
 
 #endif

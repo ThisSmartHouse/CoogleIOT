@@ -63,17 +63,31 @@ class CoogleIOT
         CoogleIOT& flashStatus(int);
         CoogleIOT& flashStatus(int, int);
         CoogleIOT& flashSOS();
-        std::string replace_all(std::string, const std::string&, const std::string&);
+
+        String getRemoteAPName();
+        String getRemoteAPPassword();
+        String getMQTTHostname();
+        String getMQTTUsername();
+        String getMQTTPassword();
+        String getMQTTClientId();
+        String getAPName();
+        String getAPPassword();
+        int getMQTTPort();
+
+        CoogleIOT& setMQTTPort(int);
+        CoogleIOT& setMQTTHostname(String);
+        CoogleIOT& setMQTTUsername(String);
+        CoogleIOT& setMQTTPassword(String);
+        CoogleIOT& setRemoteAPName(String);
+        CoogleIOT& setRemoteAPPassword(String);
+        CoogleIOT& setMQTTClientId(String);
+        CoogleIOT& setAPName(String);
+        CoogleIOT& setAPPassword(String);
+
     private:
         bool _serial;
         int _statusPin;
 
-		char mqttHostname[COOGLEIOT_MQTT_HOST_MAXLEN];
-		char mqttUsername[COOGLEIOT_MQTT_USER_MAXLEN];
-		char mqttPassword[COOGLEIOT_MQTT_USER_PASSWORD_MAXLEN];
-		char mqttClientId[COOGLEIOT_MQTT_CLIENT_ID_MAXLEN];
-		int  mqttPort;
-    	
         WiFiClient espClient;
         PubSubClient mqttClient;
         CoogleEEProm eeprom;

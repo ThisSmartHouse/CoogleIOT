@@ -22,6 +22,20 @@
 
 #include "CoogleEEPROM.h"
 
+//#define COOGLEEEPROM_DEBUG
+
+void CoogleEEProm::initialize(size_t size)
+{
+
+#ifdef COOGLEEEPROM_DEBUG
+	Serial.print("Initializing EEPROM to ");
+	Serial.print(size);
+	Serial.println(" bytes");
+#endif
+
+	EEPROM.begin(size);
+}
+
 void CoogleEEProm::initialize()
 {
 	EEPROM.begin(COOGLE_EEPROM_EEPROM_SIZE);
@@ -41,6 +55,11 @@ void CoogleEEProm::fill(int startAddress, int endAddress, byte b)
 	EEPROM.commit();
 }
 
+bool CoogleEEProm::setApp(const byte *magic)
+{
+	return writeBytes(0, magic, 4);
+}
+
 bool CoogleEEProm::isApp(const byte *magic)
 {
 	byte bytes[4];
@@ -49,6 +68,10 @@ bool CoogleEEProm::isApp(const byte *magic)
 	
 	for(int i = 0; i < 4; i++) {
 		if(bytes[i] != magic[i]) {
+
+#ifdef COOGLEEEPROM_DEBUG
+			Serial.println("[COOGLE-EEPROM] Failed to locate magic bytes to identify memory");
+#endif
 			return false;
 		}
 	}
@@ -93,6 +116,15 @@ void CoogleEEProm::dump(int bytesPerRow = 16)
 
 bool CoogleEEProm::validAddress(int address)
 {
+	if(address <= COOGLE_EEPROM_EEPROM_SIZE) {
+		return true;
+	}
+
+#ifdef COOGLEEEPROM_DEBUG
+	Serial.print("[COOGLE-EEPROM] Invalid Address: ");
+	Serial.println(address);
+#endif
+
 	return (address <= COOGLE_EEPROM_EEPROM_SIZE);
 }
 
@@ -101,12 +133,32 @@ bool CoogleEEProm::writeBytes(int startAddress, const byte *array, int length)
 	if(!validAddress(startAddress) || !validAddress(startAddress + length)) {
 		return false;
 	}
+
+#ifdef COOGLEEEPROM_DEBUG
+	Serial.print("Writing Bytes: ");
+#endif
 	
 	for(int i = 0; i < length; i++) {
+
+#ifdef COOGLEEEPROM_DEBUG
+	Serial.print((char)array[i]);
+#endif
+
 		EEPROM.write(startAddress + i, array[i]);
 	}
-	
+
+#ifdef COOGLEEEPROM_DEBUG
+	Serial.println();
+#endif
+
 	EEPROM.commit();
+
+#ifdef COOGLEEEPROM_DEBUG
+	Serial.print("[COOGLE-EEPROM] Wrote ");
+	Serial.print(length);
+	Serial.print(" bytes to address ");
+	Serial.println(startAddress);
+#endif
 	
 	return true;
 }
@@ -138,7 +190,26 @@ bool CoogleEEProm::readInt(int address, int *value)
 	return readBytes(address, (byte *)value, sizeof(int));
 }
 
+bool CoogleEEProm::writeString(int address, String str)
+{
+	char *data;
+	bool retval;
 
+	data = (char *)malloc(str.length() + 1);
+	str.toCharArray(data, str.length() + 1);
+
+	retval = writeString(address, data);
+
+#ifdef COOGLEEEPROM_DEBUG
+	Serial.print("[COOGLE-EEPROM] Wrote String: ");
+	Serial.println(data);
+#endif
+
+	free(data);
+
+	return retval;
+
+}
 bool CoogleEEProm::writeString(int address, const char *string)
 {
 	int length;
@@ -150,39 +221,72 @@ bool CoogleEEProm::writeString(int address, const char *string)
 
 bool CoogleEEProm::readString(int startAddress, char *buffer, int bufSize)
 {
-	byte ch;
 	int bufIdx;
 	
+#ifdef COOGLEEEPROM_DEBUG
+	Serial.print("Reading into Buffer that is ");
+	Serial.print(bufSize);
+	Serial.print(" byte(s) from ");
+	Serial.println(startAddress);
+
+#endif
+
 	if(!validAddress(startAddress)) {
 		return false;
 	}
 	
 	if(bufSize == 0) {
+#ifdef COOGLEEEPROM_DEBUG
+		Serial.println("Read buffer size was zero, returning false");
+#endif
 		return false;
 	}
 	
 	if(bufSize == 1) {
+
+#ifdef COOGLEEEPROM_DEBUG
+		Serial.println("Buffer Size was 1, returning null");
+#endif
+
 		buffer[0] = '\0';
 		return true;
 	}
 	
 	bufIdx = 0;
-	
+
+#ifdef COOGLEEEPROM_DEBUG
+	Serial.print("[COOGLE-EEPROM] Read Chars: ");
+#endif
+
 	do {
 
 		buffer[bufIdx] = EEPROM.read(startAddress + bufIdx);
+
+#ifdef COOGLEEEPROM_DEBUG
+		Serial.print(buffer[bufIdx]);
+#endif
+
 		bufIdx++;
 	
 	} while( 
-		(ch != 0x00) && // Null hit
+		(buffer[bufIdx - 1] != 0x00) && // Null hit
 		(bufIdx < bufSize) && // Out of space
 		((startAddress + bufIdx) <= COOGLE_EEPROM_EEPROM_SIZE) // End of EEPROM
 	);
 	
-	if((ch != 0x00) && (bufIdx >= 1)) {
+#ifdef COOGLEEEPROM_DEBUG
+	Serial.println();
+#endif
+
+	if((buffer[bufIdx - 1] != 0x00) && (bufIdx >= 1)) {
 		buffer[bufIdx - 1] = '\0';
 	}
 	
+#ifdef COOGLEEEPROM_DEBUG
+	Serial.print("Read String: ");
+	Serial.println(buffer);
+#endif
+
 	return true;
 	
 }
