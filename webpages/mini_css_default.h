@@ -1,3 +1,32 @@
+/*
+  +----------------------------------------------------------------------+
+  | CoogleIOT for ESP8266                                                |
+  +----------------------------------------------------------------------+
+  | Copyright (c) 2017 John Coggeshall                                   |
+  +----------------------------------------------------------------------+
+  | Licensed under the Apache License, Version 2.0 (the "License");      |
+  | you may not use this file except in compliance with the License. You |
+  | may obtain a copy of the License at:                                 |
+  |                                                                      |
+  | http://www.apache.org/licenses/LICENSE-2.0                           |
+  |                                                                      |
+  | Unless required by applicable law or agreed to in writing, software  |
+  | distributed under the License is distributed on an "AS IS" BASIS,    |
+  | WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or      |
+  | implied. See the License for the specific language governing         |
+  | permissions and limitations under the License.                       |
+  |                                                                      |
+  | The above license does not apply to the following code, which is a   |
+  | representation of the mini.css CSS framework. That framework is      |
+  | licensed under it's own license available here:                      |
+  |                                                                      |
+  | https://github.com/Chalarangelo/mini.css/blob/master/LICENSE         |
+  +----------------------------------------------------------------------+
+  | Authors: John Coggeshall <john@coggeshall.org>                       |
+  +----------------------------------------------------------------------+
+*/
+
+
 const char WEBPAGE_CSS[] PROGMEM = {
   0xef, 0xbb, 0xbf, 0x68, 0x74, 0x6d, 0x6c, 0x7b, 0x66, 0x6f, 0x6e, 0x74,
   0x2d, 0x73, 0x69, 0x7a, 0x65, 0x3a, 0x31, 0x36, 0x70, 0x78, 0x7d, 0x68,
