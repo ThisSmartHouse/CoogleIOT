@@ -38,20 +38,30 @@
 
 #define COOGLEIOT_DEFAULT_MQTT_PORT 1883
 
+#define COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS 54000000  // 15 Minutes in Milliseconds
+
 #include "Arduino.h"
 
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <PubSubClient.h>
+#include <ESP8266httpUpdate.h>
+
+#include "LUrlParser/LUrlParser.h"
 
 #include "CoogleEEPROM.h"
 #include "CoogleIOTWebserver.h"
+#include "user_interface.h"
+
+extern "C" void __coogle_iot_firmware_timer_callback(void *);
 
 class CoogleIOTWebserver;
 
 class CoogleIOT
 {
     public:
+		bool firmwareUpdateTick = false;
+
         CoogleIOT(int);
         CoogleIOT();
         void loop();
@@ -73,6 +83,9 @@ class CoogleIOT
         String getAPName();
         String getAPPassword();
         int getMQTTPort();
+        String getFirmwareUpdateUrl();
+
+        bool verifyFlashConfiguration();
 
         CoogleIOT& setMQTTPort(int);
         CoogleIOT& setMQTTHostname(String);
@@ -83,17 +96,23 @@ class CoogleIOT
         CoogleIOT& setMQTTClientId(String);
         CoogleIOT& setAPName(String);
         CoogleIOT& setAPPassword(String);
+        CoogleIOT& setFirmwareUpdateUrl(String);
+
+        void checkForFirmwareUpdate();
 
     private:
         bool _serial;
         int _statusPin;
+        HTTPUpdateResult firmwareUpdateStatus;
 
         WiFiClient espClient;
         PubSubClient mqttClient;
         CoogleEEProm eeprom;
         CoogleIOTWebserver *webServer;
+        os_timer_t firmwareUpdateTimer;
         
         bool mqttClientActive = false;
+
 
         void initializeLocalAP();
         void enableConfigurationMode();

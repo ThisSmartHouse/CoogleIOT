@@ -116,6 +116,7 @@ bool CoogleIOTWebserver::initialize()
 		Serial.println("Webserver Initialized!");
 	}
 
+	return true;
 }
 
 void CoogleIOTWebserver::loop()
@@ -123,11 +124,72 @@ void CoogleIOTWebserver::loop()
 	webServer->handleClient();
 }
 
+String CoogleIOTWebserver::htmlEncode(String& input)
+{
+	char t;
+	String retval, escape;
+
+	for(int i = 0; i < input.length(); i++) {
+		t = input.charAt(i);
+        switch(t) {
+			case '&':
+				escape = "&amp;";
+				break;
+
+			case '<':
+				escape = "&lt;";
+				break;
+
+			case '>':
+				escape = "&gt;";
+				break;
+
+			case '"':
+				escape = "&quot;";
+				break;
+
+			case '\'':
+				escape = "&#39;";
+				break;
+
+			default:
+				escape = t;
+				break;
+        }
+
+		retval = retval + escape;
+	}
+
+	return retval;
+}
 void CoogleIOTWebserver::handleRoot()
 {
 	String page(FPSTR(WEBPAGE_Home));
+	String ap_name, ap_password, ap_remote_name, ap_remote_password,
+	       mqtt_host, mqtt_username, mqtt_password, mqtt_client_id,
+		   firmware_url;
 
-    webServer->send_P(200, "text/html", WEBPAGE_Home);
+	ap_name = iot->getAPName();
+	ap_password = iot->getAPPassword();
+	ap_remote_name = iot->getRemoteAPName();
+	ap_remote_password = iot->getRemoteAPPassword();
+	mqtt_host = iot->getMQTTHostname();
+	mqtt_username = iot->getMQTTUsername();
+	mqtt_password = iot->getMQTTPassword();
+	mqtt_client_id = iot->getMQTTClientId();
+	firmware_url = iot->getFirmwareUpdateUrl();
+
+	page.replace(F("{{ap_name}}"), htmlEncode(ap_name));
+	page.replace(F("{{ap_password}}"), htmlEncode(ap_password));
+	page.replace(F("{{remote_ap_name}}"), htmlEncode(ap_remote_name));
+	page.replace(F("{{remote_ap_password}}"), htmlEncode(ap_remote_password));
+	page.replace(F("{{mqtt_host}}"), htmlEncode(mqtt_host));
+	page.replace(F("{{mqtt_username}}"), htmlEncode(mqtt_username));
+	page.replace(F("{{mqtt_password}}"), htmlEncode(mqtt_password));
+	page.replace(F("{{mqtt_client_id}}"), htmlEncode(mqtt_client_id));
+	page.replace(F("{{firmware_url}}"), htmlEncode(firmware_url));
+
+    webServer->send(200, "text/html", page.c_str());
 }
 
 void CoogleIOTWebserver::handleCSS()

@@ -47,6 +47,8 @@ class CoogleIOTWebserver
 		CoogleIOTWebserver& setWebserver(ESP8266WebServer* server);
 		CoogleIOTWebserver& setServerPort(int port);
 
+		String htmlEncode(String&);
+
 		bool initialize();
 		void handleRoot();
 		void handle404();

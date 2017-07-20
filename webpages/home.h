@@ -26,8 +26,8 @@
 const char WEBPAGE_Home[] PROGMEM = R"=====(
 <html>
   <head>
-    <title>CoogleIOT</title>
-    <link href="/css" type="text/css" rel="stylesheet">
+    <title>CoogleIOT Firmware</title>
+    <link href="https://gitcdn.link/repo/Chalarangelo/mini.css/master/dist/mini-default.min.css" type="text/css" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
   <body>
@@ -42,11 +42,11 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
              <p>Settings for the device WiFi (as AP)</p>
              <div class="input-group fluid">
                <label aria-hidden="true" for="ap_name">Device AP SSID</label>
-               <input aria-hidden="true" type="text" value="" id="ap_name" placeholder="Device AP Name">
+               <input aria-hidden="true" type="text" value="{{ap_name}}" id="ap_name" placeholder="Device AP Name">
              </div>
              <div class="input-group fluid">
                <label aria-hidden="true" for="ap_password">Device AP Password</label>
-               <input aria-hidden="true" type="password" value="" id="ap_password">
+               <input aria-hidden="true" type="password" value="{{ap_password}}" id="ap_password">
              </div>
          </fieldset>
          <fieldset>
@@ -54,11 +54,11 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
            <p>Settings for WiFi (as Client)</p>
            <div class="input-group fluid">
              <label aria-hidden="true" for="ap_remote_name">Remote SSID</label>
-             <input aria-hidden="true" type="text" value="" id="ap_remote_name" placeholder="Remote AP Name">
+             <input aria-hidden="true" type="text" value="{{remote_ap_name}}" id="ap_remote_name" placeholder="Remote AP Name">
            </div>
            <div class="input-group fluid">
               <label aria-hidden="true" for="ap_remote_password">Remote SSID Password</label>
-              <input aria-hidden="true"type="password" value="" id="ap_remote_password">
+              <input aria-hidden="true"type="password" value="{{remote_ap_password}}" id="ap_remote_password">
            </div>
          </fieldset>
         </form>
@@ -71,23 +71,47 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
           <legend>MQTT Client Configuration</legend>
           <div class="input-group fluid">
             <label aria-hidden="true" for="mqtt_host">MQTT Host</label>
-            <input aria-hidden="true" type="text" value="" id="mqtt_host" placeholder="mqtt.example.com">
+            <input aria-hidden="true" type="text" value="{{mqtt_host}}" id="mqtt_host" placeholder="mqtt.example.com">
           </div>
           <div class="input-group fluid">
             <label aria-hidden="true" for="mqtt_port">MQTT Port</label>
-            <input aria-hidden="true" type="text" value="" id="mqtt_port" placeholder="1883">
+            <input aria-hidden="true" type="text" value="{{mqtt_port}}" id="mqtt_port" placeholder="1883">
           </div>
           <div class="input-group fluid">
             <label aria-hidden="true" for="mqtt_username">MQTT Username</label>
-            <input aria-hidden="true" type="text" value="" id="mqtt_username" placeholder="coogleiot">
+            <input aria-hidden="true" type="text" value="{{mqtt_username}}" id="mqtt_username" placeholder="coogleiot">
           </div>
           <div class="input-group fluid">
             <label aria-hidden="true" for="mqtt_password">MQTT Pasword</label>
-            <input aria-hidden="true" type="password" id="mqtt_password">
+            <input aria-hidden="true" type="password" id="mqtt_password" value="{{mqtt_password}}">
           </div>
           <div class="input-group fluid">
             <label aria-hidden="true" for="mqtt_client_id">MQTT Client ID</label>
-            <input aria-hidden="true" type="text" value="" id="mqtt_client_id" placeholder="my-client-id">
+            <input aria-hidden="true" type="text" value="{{mqtt_client_id}}" id="mqtt_client_id" placeholder="my-client-id">
+          </div>
+        </fieldset>
+        </form>
+      </div>
+      <input type="radio" name="tabdemo" id="tab3" aria-hidden="true">
+      <label for="tab3" aria-hidden="true">System</label>
+      <div style="height: 500px">
+        <h3>System Commands</h3>
+        <button class="secondary large" id="resetEEPROMBtn">Reset EEPROM (factory reset)</button>
+        <button class="primary large" id="reloadBtn">Reboot</button>
+        <form>
+        <fieldset>
+          <legend>Firmware Updates</legend>
+            <p>Device will check for updates every 30 minutes at this URL. See:<br><br>
+            <a href="http://esp8266.github.io/Arduino/versions/2.0.0/doc/ota_updates/ota_updates.html#http-server">http://esp8266.github.io/Arduino/versions/2.0.0/doc/ota_updates/ota_updates.html#http-server</a><br><br>
+            For details on the server-side implementation.</p>
+          <div class="input-group fluid">
+            <label aria-hidden="true" for="firmware_url">Firmware Update URL</label>
+            <input aria-hidden="true" type="text" value="{{firmware_url}}" id="firmware_url" placeholder="http://example.com/updateEndpoint.php">
+          </div>
+          <p>Alternatively, you can directly upload a new .bin firmware file by clicking this button:</p>
+          <div class="input-group fluid">
+            <input type="file" id="firmware_file">
+            <label aria-hidden="true" for="firmware_file" class="button">Upload New Firmware</label>
           </div>
         </fieldset>
         </form>

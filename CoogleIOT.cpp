@@ -28,6 +28,14 @@
 #define COOGLEEEPROM_DEBUG
 #endif
 
+CoogleIOT* __coogle_iot_self;
+
+extern "C" void __coogle_iot_firmware_timer_callback(void *pArg)
+{
+	__coogle_iot_self->checkForFirmwareUpdate();
+	__coogle_iot_self->firmwareUpdateTick = true;
+}
+
 CoogleIOT::CoogleIOT(int statusPin)
 {
     _statusPin = statusPin;
@@ -59,6 +67,27 @@ void CoogleIOT::loop()
 	}
 	
 	webServer->loop();
+
+	if(firmwareUpdateTick) {
+		firmwareUpdateTick = false;
+
+		if(_serial) {
+			switch(firmwareUpdateStatus) {
+				case HTTP_UPDATE_FAILED:
+					Serial.println("Warning! Failed to update firmware with specified URL");
+					break;
+				case HTTP_UPDATE_NO_UPDATES:
+					Serial.println("Firmware update check completed - at current version");
+					break;
+				case HTTP_UPDATE_OK:
+					Serial.println("Firmware updated!");
+					break;
+				default:
+					Serial.println("Warning! No updated performed. Perhaps an invalid URL?");
+					break;
+			}
+		}
+	}
 }
 
 CoogleIOT& CoogleIOT::flashSOS()
@@ -99,6 +128,7 @@ CoogleIOT& CoogleIOT::flashStatus(int speed, int repeat)
 
 bool CoogleIOT::initialize()
 {
+	String firmwareUrl;
 	
 	if(_statusPin > -1) {
 		pinMode(_statusPin, OUTPUT);
@@ -109,6 +139,8 @@ bool CoogleIOT::initialize()
 		Serial.println("Coogle IOT v" COOGLEIOT_VERSION " initializing..");
 	}
 	
+	verifyFlashConfiguration();
+
 	randomSeed(micros());
 	
 	eeprom.initialize(1024);
@@ -136,9 +168,52 @@ bool CoogleIOT::initialize()
 
 	}
 
+	// Used for callbacks into C, where we can't use std::bind to bind an object method
+	__coogle_iot_self = this;
+
 	enableConfigurationMode();
 
+	firmwareUrl = getFirmwareUpdateUrl();
+
+	if(firmwareUrl.length() > 0) {
+		os_timer_setfn(&firmwareUpdateTimer, __coogle_iot_firmware_timer_callback, NULL);
+
+
+		os_timer_arm(&firmwareUpdateTimer, COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS, true);
+
+		if(_serial) {
+			Serial.printf("Firmware Automatic Update Will Occur every %d Milliseconds", COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS);
+		}
+	}
+
 	return true;
+}
+
+bool CoogleIOT::verifyFlashConfiguration()
+{
+	uint32_t realSize = ESP.getFlashChipRealSize();
+	uint32_t ideSize = ESP.getFlashChipSize();
+	FlashMode_t ideMode = ESP.getFlashChipMode();
+
+	if(_serial) {
+		Serial.println("Introspecting on-board Flash Memory:");
+		Serial.printf("Flash ID: %08X\n", ESP.getFlashChipId());
+		Serial.printf("Flash real size: %u\n", realSize);
+		Serial.printf("Flash IDE Size: %u\n", ideSize);
+		Serial.printf("Flash IDE Speed: %u\n", ESP.getFlashChipSpeed());
+		Serial.printf("Flash IDE Mode: %u\n", (ideMode == FM_QIO ? "QIO" : ideMode == FM_QOUT ? "QOUT" : ideMode == FM_DIO ? "DIO" : ideMode == FM_DOUT ? "DOUT" : "UNKNOWN"));
+	}
+
+	if(ideSize != realSize) {
+		if(_serial) {
+			Serial.println("\n\n****** WARNING: Flashed Size is not equal to size available on chip! ******\n\n");
+		}
+	} else {
+		if(_serial) {
+			Serial.println("Flash Chip Configuration Verified: OK");
+		}
+	}
+
 }
 
 void CoogleIOT::enableConfigurationMode()
@@ -225,6 +300,20 @@ void CoogleIOT::initializeLocalAP()
 	
 }
 
+String CoogleIOT::getFirmwareUpdateUrl()
+{
+	char firmwareUrl[COOGLEIOT_FIRMWARE_UPDATE_URL_MAXLEN];
+
+	if(!eeprom.readString(COOGLEIOT_FIRMWARE_UPDATE_URL_ADDR, firmwareUrl, COOGLEIOT_FIRMWARE_UPDATE_URL_MAXLEN)) {
+		if(_serial) {
+			Serial.println("Failed to read Firmware Update URL");
+		}
+	}
+
+	String retval(firmwareUrl);
+	return retval;
+}
+
 String CoogleIOT::getMQTTHostname()
 {
 	char mqttHost[COOGLEIOT_MQTT_HOST_MAXLEN];
@@ -299,6 +388,24 @@ CoogleIOT& CoogleIOT::setMQTTPort(int port)
 	if(!eeprom.writeInt(COOGLEIOT_MQTT_PORT_ADDR, port)) {
 		if(_serial) {
 			Serial.println("Failed to write MQTT Port to memory!");
+		}
+	}
+
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::setFirmwareUpdateUrl(String s)
+{
+	if(s.length() > COOGLEIOT_FIRMWARE_UPDATE_URL_MAXLEN) {
+		if(_serial) {
+			Serial.println("Attempted to write beyond max length!");
+		}
+		return *this;
+	}
+
+	if(!eeprom.writeString(COOGLEIOT_FIRMWARE_UPDATE_URL_ADDR, s)) {
+		if(_serial) {
+			Serial.println("Failed to write Firmware Update URL");
 		}
 	}
 
@@ -429,6 +536,37 @@ CoogleIOT& CoogleIOT::setAPName(String s)
 		}
 
 	return *this;
+}
+
+void CoogleIOT::checkForFirmwareUpdate()
+{
+	String firmwareUrl;
+	LUrlParser::clParseURL URL;
+	int port;
+
+	os_intr_lock();
+
+	firmwareUrl = getFirmwareUpdateUrl();
+
+	if(firmwareUrl.length() == 0) {
+		os_intr_unlock();
+		return;
+	}
+
+	URL = LUrlParser::clParseURL::ParseURL(firmwareUrl.c_str());
+
+	if(!URL.IsValid()) {
+		os_intr_unlock();
+		return;
+	}
+
+	if(!URL.GetPort(&port)) {
+		port = 80;
+	}
+
+	firmwareUpdateStatus = ESPhttpUpdate.update(URL.m_Host.c_str(), port, URL.m_Path.c_str(), COOGLEIOT_VERSION);
+
+	os_intr_unlock();
 }
 
 CoogleIOT& CoogleIOT::setAPPassword(String s)
