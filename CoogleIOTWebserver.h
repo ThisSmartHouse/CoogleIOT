@@ -25,11 +25,13 @@
 
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
-
+#include "ArduinoJson.h"
+#include "WifiClientPrint.h"
 #include "CoogleIOT.h"
 
 #include "webpages/home.h"
 #include "webpages/mini_css_default.h"
+#include "webpages/jquery-3.2.1.slim.min.h"
 #include "webpages/404.h"
 
 #define COOGLEIOT_WEBSERVER_PORT 80
@@ -53,7 +55,13 @@ class CoogleIOTWebserver
 		void handleRoot();
 		void handle404();
 		void handleCSS();
+		void handleJS();
 		void handleSubmit();
+		void handleReset();
+		void handleRestart();
+
+		void handleApiStatus();
+
 		void loop();
 	protected:
 		CoogleIOTWebserver& initializePages();

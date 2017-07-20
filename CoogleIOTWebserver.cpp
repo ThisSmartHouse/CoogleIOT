@@ -64,6 +64,12 @@ CoogleIOTWebserver& CoogleIOTWebserver::initializePages()
 	webServer->on("/", std::bind(&CoogleIOTWebserver::handleRoot, this));
 	webServer->on("/css", std::bind(&CoogleIOTWebserver::handleCSS, this));
 	webServer->on("/save", std::bind(&CoogleIOTWebserver::handleSubmit, this));
+	webServer->on("/reset", std::bind(&CoogleIOTWebserver::handleReset, this));
+	webServer->on("/restart", std::bind(&CoogleIOTWebserver::handleRestart, this));
+	webServer->on("/jquery", std::bind(&CoogleIOTWebserver::handleJS, this));
+
+	webServer->on("/api/status", std::bind(&CoogleIOTWebserver::handleApiStatus, this));
+
 	webServer->onNotFound(std::bind(&CoogleIOTWebserver::handle404, this));
 
 	return *this;
@@ -192,9 +198,15 @@ void CoogleIOTWebserver::handleRoot()
     webServer->send(200, "text/html", page.c_str());
 }
 
+void CoogleIOTWebserver::handleJS()
+{
+	webServer->sendHeader("Content-Encoding", "gzip", true);
+	webServer->send_P(200, "application/javascript", jquery_3_2_1_slim_min_js_gz, jquery_3_2_1_slim_min_js_gz_len);
+}
+
 void CoogleIOTWebserver::handleCSS()
 {
-	webServer->send_P(200, "text/css", WEBPAGE_CSS);
+	webServer->send_P(200, "text/css", WEBPAGE_CSS, mini_default_min_css_len);
 }
 
 void CoogleIOTWebserver::handle404()
@@ -204,6 +216,31 @@ void CoogleIOTWebserver::handle404()
 
 void CoogleIOTWebserver::handleSubmit()
 {
-
 }
 
+void CoogleIOTWebserver::handleReset()
+{
+	iot->resetEEProm();
+	iot->restartDevice();
+}
+
+void CoogleIOTWebserver::handleRestart()
+{
+	iot->restartDevice();
+}
+
+void CoogleIOTWebserver::handleApiStatus()
+{
+	StaticJsonBuffer<200> jsonBuffer;
+	WiFiClientPrint<> p(webServer->client());
+
+	JsonObject& retval = jsonBuffer.createObject();
+
+	retval["status"] = true;
+
+	webServer->setContentLength(retval.measureLength());
+	webServer->send(200, "application/json", "");
+	retval.printTo(p);
+	p.stop();
+
+}

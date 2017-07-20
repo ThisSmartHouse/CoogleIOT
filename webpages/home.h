@@ -27,7 +27,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
 <html>
   <head>
     <title>CoogleIOT Firmware</title>
-    <link href="https://gitcdn.link/repo/Chalarangelo/mini.css/master/dist/mini-default.min.css" type="text/css" rel="stylesheet">
+    <link href="/css" type="text/css" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
   <body>
@@ -118,6 +118,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
       </div>
     </div>
     <button class="primary bordered" style="width: 100%">Save and Restart</button>
+	<script src="/jquery"></script>
   </body>
 </html>
 )=====";

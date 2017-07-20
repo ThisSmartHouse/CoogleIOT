@@ -73,6 +73,8 @@ class CoogleIOT
         CoogleIOT& flashStatus(int);
         CoogleIOT& flashStatus(int, int);
         CoogleIOT& flashSOS();
+        	CoogleIOT& resetEEProm();
+        	void restartDevice();
 
         String getRemoteAPName();
         String getRemoteAPPassword();

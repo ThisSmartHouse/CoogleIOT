@@ -1,3 +1,5 @@
+#ifndef COOGLEIOTWEBSERVER_MINICSS_H
+#define COOGLEIOTWEBSERVER_MINICSS_H
 /*
   +----------------------------------------------------------------------+
   | CoogleIOT for ESP8266                                                |
@@ -3194,3 +3196,6 @@ const char WEBPAGE_CSS[] PROGMEM = {
   0x69, 0x64, 0x64, 0x65, 0x6e, 0x20, 0x21, 0x69, 0x6d, 0x70, 0x6f, 0x72,
   0x74, 0x61, 0x6e, 0x74, 0x7d, 0x7d, 0x0a
 };
+
+const unsigned int mini_default_min_css_len = 37975;
+#endif

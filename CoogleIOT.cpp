@@ -59,7 +59,6 @@ void CoogleIOT::loop()
 		if(!mqttClient.connected()) {
 			if(!connectToMQTT()) {
 				flashSOS();
-				return;
 			}
 		}
 
@@ -177,16 +176,25 @@ bool CoogleIOT::initialize()
 
 	if(firmwareUrl.length() > 0) {
 		os_timer_setfn(&firmwareUpdateTimer, __coogle_iot_firmware_timer_callback, NULL);
-
-
 		os_timer_arm(&firmwareUpdateTimer, COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS, true);
 
 		if(_serial) {
-			Serial.printf("Firmware Automatic Update Will Occur every %d Milliseconds", COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS);
+			Serial.printf("Firmware Automatic Update Will Occur every %d Milliseconds\n", COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS);
 		}
 	}
 
 	return true;
+}
+
+void CoogleIOT::restartDevice()
+{
+	ESP.restart();
+}
+
+CoogleIOT& CoogleIOT::resetEEProm()
+{
+	eeprom.reset();
+	return *this;
 }
 
 bool CoogleIOT::verifyFlashConfiguration()
