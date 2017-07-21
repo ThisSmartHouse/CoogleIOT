@@ -47,6 +47,8 @@
 
 #define COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS 54000000  // 15 Minutes in Milliseconds
 
+#define COOGLEIOT_DNS_PORT 53
+
 #include "Arduino.h"
 
 #include <ESP8266WiFi.h>
@@ -55,6 +57,7 @@
 #include <ESP8266httpUpdate.h>
 #include <time.h>
 
+#include "DNSServer/DNSServer.h"
 #include "LUrlParser/LUrlParser.h"
 
 #include "CoogleEEPROM.h"
@@ -119,6 +122,7 @@ class CoogleIOT
         HTTPUpdateResult firmwareUpdateStatus;
         time_t now;
 
+        DNSServer dnsServer;
         WiFiClient espClient;
         PubSubClient mqttClient;
         CoogleEEProm eeprom;

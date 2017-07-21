@@ -69,6 +69,8 @@ CoogleIOTWebserver& CoogleIOTWebserver::initializePages()
 	webServer->on("/jquery", std::bind(&CoogleIOTWebserver::handleJS, this));
 
 	webServer->on("/api/status", std::bind(&CoogleIOTWebserver::handleApiStatus, this));
+	webServer->on("/api/reset", std::bind(&CoogleIOTWebserver::handleApiReset, this));
+	webServer->on("/api/restart", std::bind(&CoogleIOTWebserver::handleApiRestart, this));
 
 	webServer->onNotFound(std::bind(&CoogleIOTWebserver::handle404, this));
 
@@ -95,22 +97,6 @@ CoogleIOTWebserver& CoogleIOTWebserver::setIOT(CoogleIOT& _iot)
 
 bool CoogleIOTWebserver::initialize()
 {
-//	if(!MDNS.begin(COOGLEIOT_WS_MDNS_DOMAIN)) {
-//		if(iot->serialEnabled()) {
-//			Serial.println("ERROR Initializing the mDNS Responder");
-//		}
-//
-//		iot->flashSOS();
-//		return false;
-//
-//	} else {
-//
-//		if(iot->serialEnabled()) {
-//			Serial.println("mDNS Responder initialized");
-//		}
-//
-//	}
-
 	if(iot->serialEnabled()) {
 		Serial.println("Initialzing Webserver...");
 	}
@@ -221,13 +207,12 @@ void CoogleIOTWebserver::handleSubmit()
 void CoogleIOTWebserver::handleReset()
 {
 	webServer->send_P(200, "text/html", WEBPAGE_Restart);
-	webServer->stop();
+	iot->resetEEProm();
 }
 
 void CoogleIOTWebserver::handleRestart()
 {
 	webServer->send_P(200, "text/html", WEBPAGE_Restart);
-	webServer->stop();
 }
 
 void CoogleIOTWebserver::handleApiReset()

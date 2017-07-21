@@ -28,6 +28,7 @@
 #include "ArduinoJson.h"
 #include "WifiClientPrint.h"
 #include "CoogleIOT.h"
+#include "DNSServer/DNSServer.h"
 
 #include "webpages/home.h"
 #include "webpages/mini_css_default.h"

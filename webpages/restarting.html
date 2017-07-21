@@ -10,29 +10,34 @@
             <div class="section" style="text-align:center">
                 <h3>Restarting CoogleIOT</h3>
                 <p>Please wait, this CoogleIOT device is restarting.</p>
-                <p>You will be returned to the setup page upon completion</p>
+                <p>You will likely lose your connection to the AP.</p>
                 <div class="spinner-donut large center-block"></div>
+                <p>
+                    <button id="setupBtn" disabled class="primary">Return to Setup (10 seconds)</button>
+                </p>
             </div>
         </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
     <script>
         $(document).ready(function() {
+          
+          $('#setupBtn').on('click', function() {
+            window.location.href = '/';
+          });
+
           setTimeout(function() {
-            
-            console.log("Checking Device Status");
-            
-            $.ajax({
-              url: "/api/status",
+            $('#setupBtn').removeAttr('disabled');
+          }, 10000);
+
+          setTimeout(function() {
+             $.ajax({
+              url: "/api/restart",
               success: function(result) {
-                if(result.success) {
-                  window.location.href = "/";
-                }
               }
             });
-            
-          }, 5000);
-        })
+          }, 1000);
+        });
     </script>
   </body>
 </html>

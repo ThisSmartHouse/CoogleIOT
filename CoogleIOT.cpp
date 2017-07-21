@@ -71,6 +71,9 @@ void CoogleIOT::loop()
 	yield();
 	webServer->loop();
 
+	yield();
+	dnsServer.processNextRequest();
+
 	now = time(nullptr);
 
 	if(now) {
@@ -367,6 +370,11 @@ void CoogleIOT::initializeLocalAP()
 		Serial.println(WiFi.softAPIP());
 	}
 	
+	if(_serial) {
+		Serial.println("Initializing DNS Server");
+	}
+
+	dnsServer.start(COOGLEIOT_DNS_PORT, "*", WiFi.softAPIP());
 }
 
 String CoogleIOT::getFirmwareUpdateUrl()
@@ -842,7 +850,7 @@ bool CoogleIOT::connectToSSID()
 			Serial.println("No Remote AP Found in memory");
 		}
 		
-		return true;
+		return false;
 	} 
 	
 	if(_serial) {
