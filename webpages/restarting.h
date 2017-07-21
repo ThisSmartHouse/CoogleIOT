@@ -20,58 +20,50 @@
   +----------------------------------------------------------------------+
 */
 
-#ifndef COOGLEIOT_WEBSERVER_H
-#define COOGLEIOT_WEBSERVER_H
+#ifndef COOGLEIOT_WEBPAGES_RESTART_H_
+#define COOGLEIOT_WEBPAGES_RESTART_H_
 
-#include <ESP8266mDNS.h>
-#include <ESP8266WebServer.h>
-#include "ArduinoJson.h"
-#include "WifiClientPrint.h"
-#include "CoogleIOT.h"
+const char WEBPAGE_Restart[] PROGMEM = R"=====(
+<html>
+  <head>
+    <title>CoogleIOT Firmware Restarting</title>
+    <link href="/css" type="text/css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body>
+    <div class="row">
+        <div class="card">
+            <div class="section" style="text-align:center">
+                <h3>Restarting CoogleIOT</h3>
+                <p>Please wait, this CoogleIOT device is restarting.</p>
+                <p>You will be returned to the setup page upon completion</p>
+                <div class="spinner-donut large center-block"></div>
+                <p>You may have to reconnect to the AP to continue</p>
+            </div>
+        </div>
+    </div>
+    <script src="/jquery"></script>
+    <script>
+        $(document).ready(function() {
+          setTimeout(function() {
+            
+            console.log("Checking Device Status");
+            
+            $.ajax({
+              url: "/status/api",
+              success: function(result) {
+                if(result.success) {
+                  window.location.href = "/";
+                }
+              }
+            });
+            
+          }, 5000);
+        })
+    </script>
+  </body>
+</html>
+)=====";
 
-#include "webpages/home.h"
-#include "webpages/mini_css_default.h"
-#include "webpages/jquery-3.2.1.min.h"
-#include "webpages/404.h"
-#include "webpages/restarting.h"
 
-#define COOGLEIOT_WEBSERVER_PORT 80
-#define COOGLEIOT_WS_MDNS_DOMAIN "coogleiot"
-
-class CoogleIOT;
-
-class CoogleIOTWebserver
-{
-	public:
-		CoogleIOTWebserver(CoogleIOT& _iot);
-		CoogleIOTWebserver(CoogleIOT& _iot, int port);
-
-		CoogleIOTWebserver& setIOT(CoogleIOT& _iot);
-		CoogleIOTWebserver& setWebserver(ESP8266WebServer* server);
-		CoogleIOTWebserver& setServerPort(int port);
-
-		String htmlEncode(String&);
-
-		bool initialize();
-		void handleRoot();
-		void handle404();
-		void handleCSS();
-		void handleJS();
-		void handleSubmit();
-		void handleReset();
-		void handleRestart();
-
-		void handleApiStatus();
-		void handleApiReset();
-		void handleApiRestart();
-
-		void loop();
-	protected:
-		CoogleIOTWebserver& initializePages();
-	private:
-		ESP8266WebServer* webServer;
-		CoogleIOT* iot;
-		int serverPort = 80;
-};
-
-#endif
+#endif /* COOGLEIOT_WEBPAGES_HOME_H_ */

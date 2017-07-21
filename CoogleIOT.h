@@ -38,6 +38,13 @@
 
 #define COOGLEIOT_DEFAULT_MQTT_PORT 1883
 
+#define COOGLEIOT_TIMEZONE_OFFSET ((3600 * 5) * -1) // Default Timezone is -5 UTC (America/New York)
+#define COOGLEIOT_DAYLIGHT_OFFSET 0 // seconds
+
+#define COOGLEIOT_NTP_SERVER_1 "pool.ntp.org"
+#define COOGLEIOT_NTP_SERVER_2 "time.nist.gov"
+#define COOGLEIOT_NTP_SERVER_3 "time.google.com"
+
 #define COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS 54000000  // 15 Minutes in Milliseconds
 
 #include "Arduino.h"
@@ -46,6 +53,7 @@
 #include <WiFiClient.h>
 #include <PubSubClient.h>
 #include <ESP8266httpUpdate.h>
+#include <time.h>
 
 #include "LUrlParser/LUrlParser.h"
 
@@ -61,6 +69,7 @@ class CoogleIOT
 {
     public:
 		bool firmwareUpdateTick = false;
+		bool _restarting = false;
 
         CoogleIOT(int);
         CoogleIOT();
@@ -99,13 +108,16 @@ class CoogleIOT
         CoogleIOT& setAPName(String);
         CoogleIOT& setAPPassword(String);
         CoogleIOT& setFirmwareUpdateUrl(String);
+        CoogleIOT& syncNTPTime(int, int);
 
         void checkForFirmwareUpdate();
 
     private:
+
         bool _serial;
         int _statusPin;
         HTTPUpdateResult firmwareUpdateStatus;
+        time_t now;
 
         WiFiClient espClient;
         PubSubClient mqttClient;

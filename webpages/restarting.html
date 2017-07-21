@@ -1,0 +1,38 @@
+<html>
+  <head>
+    <title>CoogleIOT Firmware Restarting</title>
+    <link href="https://gitcdn.link/repo/Chalarangelo/mini.css/master/dist/mini-default.min.css" type="text/css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body>
+    <div class="row">
+        <div class="card">
+            <div class="section" style="text-align:center">
+                <h3>Restarting CoogleIOT</h3>
+                <p>Please wait, this CoogleIOT device is restarting.</p>
+                <p>You will be returned to the setup page upon completion</p>
+                <div class="spinner-donut large center-block"></div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script>
+        $(document).ready(function() {
+          setTimeout(function() {
+            
+            console.log("Checking Device Status");
+            
+            $.ajax({
+              url: "/api/status",
+              success: function(result) {
+                if(result.success) {
+                  window.location.href = "/";
+                }
+              }
+            });
+            
+          }, 5000);
+        })
+    </script>
+  </body>
+</html>

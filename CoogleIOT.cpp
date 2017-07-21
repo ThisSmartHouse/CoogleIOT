@@ -32,7 +32,6 @@ CoogleIOT* __coogle_iot_self;
 
 extern "C" void __coogle_iot_firmware_timer_callback(void *pArg)
 {
-	__coogle_iot_self->checkForFirmwareUpdate();
 	__coogle_iot_self->firmwareUpdateTick = true;
 }
 
@@ -55,20 +54,40 @@ bool CoogleIOT::serialEnabled()
 
 void CoogleIOT::loop()
 {
+	struct tm* p_tm;
+
 	if(mqttClientActive) {
 		if(!mqttClient.connected()) {
+			yield();
 			if(!connectToMQTT()) {
 				flashSOS();
 			}
 		}
 
+		yield();
 		mqttClient.loop();
 	}
 	
+	yield();
 	webServer->loop();
+
+	now = time(nullptr);
+
+	if(now) {
+		p_tm = localtime(&now);
+
+		if( (p_tm->tm_hour == 12) &&
+			(p_tm->tm_min == 0) &&
+			(p_tm->tm_sec == 6)) {
+			yield();
+			syncNTPTime(COOGLEIOT_TIMEZONE_OFFSET, COOGLEIOT_DAYLIGHT_OFFSET);
+		}
+	}
 
 	if(firmwareUpdateTick) {
 		firmwareUpdateTick = false;
+
+		checkForFirmwareUpdate();
 
 		if(_serial) {
 			switch(firmwareUpdateStatus) {
@@ -100,6 +119,45 @@ CoogleIOT& CoogleIOT::flashSOS()
 		delay(5000);
 	}
 	
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::syncNTPTime(int offsetSeconds, int daylightOffsetSec)
+{
+	if(!WiFi.status() == WL_CONNECTED) {
+
+		if(_serial) {
+			Serial.println("Cannot synchronize time with NTP Servers - No WiFi Connection");
+		}
+
+		return *this;
+	}
+
+	if(_serial) {
+		Serial.println("Synchronizing time on device with NTP Servers");
+		Serial.printf("Offset From UTC is %d seconds, daylight offset is %d seconds\n", offsetSeconds, daylightOffsetSec);
+	}
+
+	configTime(offsetSeconds, daylightOffsetSec, COOGLEIOT_NTP_SERVER_1, COOGLEIOT_NTP_SERVER_2, COOGLEIOT_NTP_SERVER_3);
+
+	for(int i = 0; (i < 10) && !time(nullptr); i++) {
+		delay(1000);
+
+		if(_serial) {
+			Serial.print(".");
+		}
+	}
+
+	if(_serial) {
+		Serial.println();
+	}
+
+	if(!(now = time(nullptr))) {
+		if(_serial) {
+			Serial.println("WARNING: Failed to synchronize time with time server!");
+		}
+	}
+
 	return *this;
 }
 
@@ -159,6 +217,8 @@ bool CoogleIOT::initialize()
 		}
 	} else {
 	
+		syncNTPTime(COOGLEIOT_TIMEZONE_OFFSET, COOGLEIOT_DAYLIGHT_OFFSET);
+
 		if(!initializeMQTT()) {
 			if(_serial) {
 				Serial.println("Failed to connect to MQTT");
@@ -188,6 +248,7 @@ bool CoogleIOT::initialize()
 
 void CoogleIOT::restartDevice()
 {
+	_restarting = true;
 	ESP.restart();
 }
 

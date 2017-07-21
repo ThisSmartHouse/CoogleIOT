@@ -201,7 +201,7 @@ void CoogleIOTWebserver::handleRoot()
 void CoogleIOTWebserver::handleJS()
 {
 	webServer->sendHeader("Content-Encoding", "gzip", true);
-	webServer->send_P(200, "application/javascript", jquery_3_2_1_slim_min_js_gz, jquery_3_2_1_slim_min_js_gz_len);
+	webServer->send_P(200, "application/javascript", jquery_3_2_1_min_js_gz, jquery_3_2_1_min_js_gz_len);
 }
 
 void CoogleIOTWebserver::handleCSS()
@@ -220,11 +220,22 @@ void CoogleIOTWebserver::handleSubmit()
 
 void CoogleIOTWebserver::handleReset()
 {
-	iot->resetEEProm();
-	iot->restartDevice();
+	webServer->send_P(200, "text/html", WEBPAGE_Restart);
+	webServer->stop();
 }
 
 void CoogleIOTWebserver::handleRestart()
+{
+	webServer->send_P(200, "text/html", WEBPAGE_Restart);
+	webServer->stop();
+}
+
+void CoogleIOTWebserver::handleApiReset()
+{
+	iot->resetEEProm();
+}
+
+void CoogleIOTWebserver::handleApiRestart()
 {
 	iot->restartDevice();
 }
@@ -236,7 +247,7 @@ void CoogleIOTWebserver::handleApiStatus()
 
 	JsonObject& retval = jsonBuffer.createObject();
 
-	retval["status"] = true;
+	retval["status"] = !iot->_restarting;
 
 	webServer->setContentLength(retval.measureLength());
 	webServer->send(200, "application/json", "");
