@@ -52,7 +52,7 @@ void CoogleIOT::loop()
 	struct tm* p_tm;
 
 	if(mqttClientActive) {
-		if(!mqttClient.connected()) {
+		if(!mqttClient->connected()) {
 			yield();
 			if(!connectToMQTT()) {
 				flashSOS();
@@ -60,7 +60,7 @@ void CoogleIOT::loop()
 		}
 
 		yield();
-		mqttClient.loop();
+		mqttClient->loop();
 	}
 	
 	yield();
@@ -370,7 +370,20 @@ void CoogleIOT::initializeLocalAP()
 		Serial.println("Initializing DNS Server");
 	}
 
-	dnsServer.start(COOGLEIOT_DNS_PORT, "*", WiFi.softAPIP());
+	if(WiFi.status() != WL_CONNECTED) {
+		dnsServer.start(COOGLEIOT_DNS_PORT, "*", WiFi.softAPIP());
+
+		if(_serial) {
+			Serial.println("Enabled DNS Server, not connected to WiFi");
+		}
+
+	} else {
+
+		if(_serial) {
+			Serial.println("Disabled DNS Server while connected to WiFi");
+		}
+
+	}
 }
 
 String CoogleIOT::getFirmwareUpdateUrl()
@@ -700,7 +713,8 @@ bool CoogleIOT::initializeMQTT()
 		setMQTTPort(COOGLEIOT_DEFAULT_MQTT_PORT);
 	}
 	
-	mqttClient.setServer(mqttHostname.c_str(), mqttPort);
+	mqttClient = new PubSubClient(espClient);
+	mqttClient->setServer(mqttHostname.c_str(), mqttPort);
 	
 	/**
 	 * @todo Callback here
@@ -709,7 +723,7 @@ bool CoogleIOT::initializeMQTT()
 	return connectToMQTT();
 }
 
-PubSubClient CoogleIOT::getMQTTClient()
+PubSubClient* CoogleIOT::getMQTTClient()
 {
 	return mqttClient;
 }
@@ -720,8 +734,15 @@ bool CoogleIOT::connectToMQTT()
 	String mqttHostname, mqttUsername, mqttPassword, mqttClientId;
 	int mqttPort;
 
-	if(mqttClient.connected()) {
+	if(mqttClient->connected()) {
 		return true;
+	}
+
+	if(WiFi.status() != WL_CONNECTED) {
+		if(_serial) {
+			Serial.println("Cannot connect to MQTT because we are not connected to WiFi");
+			return false;
+		}
 	}
 
 	mqttHostname = getMQTTHostname();
@@ -742,25 +763,25 @@ bool CoogleIOT::connectToMQTT()
 		Serial.println(mqttPort);
 	}
 	
-	for(int i = 0; (i < 5) && (!mqttClient.connected()); i++) {
+	for(int i = 0; (i < 5) && (!mqttClient->connected()); i++) {
 		
 		if(mqttUsername.length() == 0) {
-			connectResult = mqttClient.connect(mqttClientId.c_str());
+			connectResult = mqttClient->connect(mqttClientId.c_str());
 		} else {
-			connectResult = mqttClient.connect(mqttClientId.c_str(), mqttUsername.c_str(), mqttPassword.c_str());
+			connectResult = mqttClient->connect(mqttClientId.c_str(), mqttUsername.c_str(), mqttPassword.c_str());
 		}
 		
 		if(!connectResult) {
 			if(_serial) {
 				Serial.println("Could not connect to MQTT Server.. Retrying in 5 seconds..");
 				Serial.print("State: ");
-				Serial.println(mqttClient.state());
+				Serial.println(mqttClient->state());
 				delay(5000);
 			}
 		}
 	}
 	
-	if(!mqttClient.connected()) {
+	if(!mqttClient->connected()) {
 
 		if(_serial) {
 			Serial.println("Failed to connect to MQTT Server! Aborting.");
@@ -769,6 +790,10 @@ bool CoogleIOT::connectToMQTT()
 		flashSOS();
 		mqttClientActive = false;
 		return false;
+	}
+
+	if(_serial) {
+		Serial.println("MQTT Client Initialized!");
 	}
 	
 	mqttClientActive = true;

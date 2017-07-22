@@ -57,7 +57,7 @@ class CoogleIOT
         bool initialize();
         CoogleIOT& enableSerial(int);
         CoogleIOT& enableSerial();
-        PubSubClient getMQTTClient();
+        PubSubClient* getMQTTClient();
         bool serialEnabled();
         CoogleIOT& flashStatus(int);
         CoogleIOT& flashStatus(int, int);
@@ -103,7 +103,7 @@ class CoogleIOT
 
         DNSServer dnsServer;
         WiFiClient espClient;
-        PubSubClient mqttClient;
+        PubSubClient *mqttClient;
         CoogleEEProm eeprom;
         CoogleIOTWebserver *webServer;
         os_timer_t firmwareUpdateTimer;
