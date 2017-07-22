@@ -29,15 +29,13 @@
 #include "WifiClientPrint.h"
 #include "CoogleIOT.h"
 #include "DNSServer/DNSServer.h"
+#include "CoogleIOTConfig.h"
 
 #include "webpages/home.h"
 #include "webpages/mini_css_default.h"
 #include "webpages/jquery-3.2.1.min.h"
 #include "webpages/404.h"
 #include "webpages/restarting.h"
-
-#define COOGLEIOT_WEBSERVER_PORT 80
-#define COOGLEIOT_WS_MDNS_DOMAIN "coogleiot"
 
 class CoogleIOT;
 

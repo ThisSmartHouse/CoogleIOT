@@ -25,8 +25,7 @@
 
 #include <EEPROM.h>
 #include "Arduino.h"
-
-#define COOGLE_EEPROM_EEPROM_SIZE 511
+#include "CoogleIOTConfig.h"
 
 class CoogleEEProm
 {

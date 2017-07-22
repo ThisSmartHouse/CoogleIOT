@@ -21,12 +21,7 @@
 */
 
 #include "CoogleIOT.h"
-
-#define COOGLEIOT_DEBUG
-
-#ifdef COOGLEIOT_DEBUG
-#define COOGLEEEPROM_DEBUG
-#endif
+#include "CoogleIOTConfig.h"
 
 CoogleIOT* __coogle_iot_self;
 
@@ -203,7 +198,7 @@ bool CoogleIOT::initialize()
 
 	randomSeed(micros());
 	
-	eeprom.initialize(1024);
+	eeprom.initialize(COOGLE_EEPROM_EEPROM_SIZE);
 
 	if(!eeprom.isApp((const byte *)COOGLEIOT_MAGIC_BYTES)) {
 		
@@ -214,6 +209,8 @@ bool CoogleIOT::initialize()
 		eeprom.setApp((const byte *)COOGLEIOT_MAGIC_BYTES);
 	}
 	
+	WiFi.mode(WIFI_AP_STA);
+
 	if(!connectToSSID()) {
 		if(_serial) {
 			Serial.println("Failed to connect to AP");
@@ -361,7 +358,6 @@ void CoogleIOT::initializeLocalAP()
 		Serial.println(localAPName);
 	}
 
-	WiFi.mode(WIFI_AP_STA);
 	WiFi.softAPConfig(apLocalIP, apGateway, apSubnetMask);
 	WiFi.softAP(localAPName.c_str(), localAPPassword.c_str());
 	
@@ -388,7 +384,7 @@ String CoogleIOT::getFirmwareUpdateUrl()
 	}
 
 	String retval(firmwareUrl);
-	return retval;
+	return filterAscii(retval);
 }
 
 String CoogleIOT::getMQTTHostname()
@@ -402,7 +398,7 @@ String CoogleIOT::getMQTTHostname()
 	}
 
 	String retval(mqttHost);
-	return retval;
+	return filterAscii(retval);
 }
 
 String CoogleIOT::getMQTTClientId()
@@ -416,7 +412,7 @@ String CoogleIOT::getMQTTClientId()
 	}
 
 	String retval(mqtt);
-	return retval;
+	return filterAscii(retval);
 }
 
 String CoogleIOT::getMQTTUsername()
@@ -430,7 +426,7 @@ String CoogleIOT::getMQTTUsername()
 	}
 
 	String retval(mqtt);
-	return retval;
+	return filterAscii(retval);
 }
 
 String CoogleIOT::getMQTTPassword()
@@ -444,7 +440,7 @@ String CoogleIOT::getMQTTPassword()
 	}
 
 	String retval(mqtt);
-	return retval;
+	return filterAscii(retval);
 }
 
 int CoogleIOT::getMQTTPort()
@@ -571,10 +567,10 @@ CoogleIOT& CoogleIOT::setRemoteAPName(String s)
 	}
 
 	if(!eeprom.writeString(COOGLEIOT_REMOTE_AP_NAME_ADDR, s)) {
-			if(_serial) {
-				Serial.println("Failed to write MQTT default Client ID");
-			}
+		if(_serial) {
+			Serial.println("Failed to write MQTT default Client ID");
 		}
+	}
 
 	return *this;
 }
@@ -790,7 +786,7 @@ String CoogleIOT::getAPName()
 	}
 
 	String retval(APName);
-	return retval;
+	return filterAscii(retval);
 }
 
 String CoogleIOT::getAPPassword()
@@ -804,6 +800,20 @@ String CoogleIOT::getAPPassword()
 	}
 
 	String retval(password);
+	return filterAscii(retval);
+}
+
+String CoogleIOT::filterAscii(String s)
+{
+	String retval;
+
+	for(int i = 0; i < s.length(); i++) {
+
+		if(isascii(s.charAt(i))) {
+			retval += s.charAt(i);
+		}
+	}
+
 	return retval;
 }
 
@@ -815,10 +825,13 @@ String CoogleIOT::getRemoteAPName()
 		if(_serial) {
 			Serial.println("Failed to read Remote AP Name from EEPROM");
 		}
+		remoteAPName[0] = 0;
 	}
 
 	String retval(remoteAPName);
-	return retval;
+
+
+	return filterAscii(retval);
 }
 
 String CoogleIOT::getRemoteAPPassword()
@@ -832,7 +845,7 @@ String CoogleIOT::getRemoteAPPassword()
 	}
 
 	String retval(remoteAPPassword);
-	return retval;
+	return filterAscii(retval);
 }
 
 bool CoogleIOT::connectToSSID()
@@ -843,6 +856,7 @@ bool CoogleIOT::connectToSSID()
 	flashStatus(COOGLEIOT_STATUS_WIFI_INIT);
 	
 	remoteAPName = getRemoteAPName();
+	remoteAPPassword = getRemoteAPPassword();
 	
 	if(remoteAPName.length() == 0) {
 	
@@ -871,7 +885,7 @@ bool CoogleIOT::connectToSSID()
 		
 	}
 	
-	for(int i = 0; (i < 20) && (WiFi.status() != WL_CONNECTED); i++) {
+	for(int i = 0; (i < 50) && (WiFi.status() != WL_CONNECTED); i++) {
 		delay(500);
 		
 		if(_serial) {
@@ -882,8 +896,8 @@ bool CoogleIOT::connectToSSID()
 	
 	if(WiFi.status() != WL_CONNECTED) {
 		if(_serial) {
-			Serial.println("ERROR: Could not connect to AP!");
-			
+			Serial.println("\nERROR: Could not connect to AP!");
+			WiFi.printDiag(Serial);
 		}
 		
 		flashSOS();

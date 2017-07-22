@@ -117,8 +117,42 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
         </form>
       </div>
     </div>
-    <button class="primary bordered" style="width: 100%">Save and Restart</button>
+    <button class="primary bordered" style="width: 100%" id="saveBtn">Save and Restart</button>
 	<script src="/jquery"></script>
+    <script>
+      $(document).ready(function() {
+        
+        $('#saveBtn').on('click', function(e) {
+          e.preventDefault();
+          
+          var postData = {
+            'ap_name' : $('#ap_name').val(),
+            'ap_password' : $('#ap_password').val(),
+            'remote_ap_name' : $('#ap_remote_name').val(),
+            'remote_ap_password' : $('#ap_remote_password').val(),
+            'mqtt_host' : $('#mqtt_host').val(),
+            'mqtt_port' : $('#mqtt_port').val(),
+            'mqtt_username' : $('#mqtt_username').val(),
+            'mqtt_password' : $('#mqtt_password').val(),
+            'mqtt_client_id' : $('#mqtt_client_id').val(),
+            'firmware_url' : $('#firmware_url').val()
+          }
+          
+          console.log(postData);
+          
+          $.post('/api/save', postData, function(result) {
+            
+            if(!result.status) {
+              alert("Failed to save settings");
+              return;
+            }
+            
+            alert("Settings Saved!");
+            
+          });
+        });
+      });
+    </script>
   </body>
 </html>
 )=====";
