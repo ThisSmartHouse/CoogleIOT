@@ -116,6 +116,12 @@ void CoogleIOTWebserver::loop()
 	webServer->handleClient();
 }
 
+String CoogleIOTWebserver::htmlEncode(char *input)
+{
+	String i = String(input);
+	return htmlEncode(i);
+}
+
 String CoogleIOTWebserver::htmlEncode(String& input)
 {
 	char t;
@@ -159,7 +165,7 @@ void CoogleIOTWebserver::handleRoot()
 	String page(FPSTR(WEBPAGE_Home));
 	String ap_name, ap_password, ap_remote_name, ap_remote_password,
 	       mqtt_host, mqtt_username, mqtt_password, mqtt_client_id,
-		   firmware_url, mqtt_port;
+		   firmware_url, mqtt_port, local_ip, mac_address, wifi_status;
 
 	ap_name = iot->getAPName();
 	ap_password = iot->getAPPassword();
@@ -171,6 +177,9 @@ void CoogleIOTWebserver::handleRoot()
 	mqtt_client_id = iot->getMQTTClientId();
 	firmware_url = iot->getFirmwareUpdateUrl();
 	mqtt_port = String(iot->getMQTTPort());
+	local_ip = WiFi.localIP().toString();
+	mac_address = WiFi.macAddress();
+	wifi_status = iot->getWiFiStatus();
 
 	page.replace(F("{{ap_name}}"), htmlEncode(ap_name));
 	page.replace(F("{{ap_password}}"), htmlEncode(ap_password));
@@ -182,6 +191,16 @@ void CoogleIOTWebserver::handleRoot()
 	page.replace(F("{{mqtt_client_id}}"), htmlEncode(mqtt_client_id));
 	page.replace(F("{{firmware_url}}"), htmlEncode(firmware_url));
 	page.replace(F("{{mqtt_port}}"), htmlEncode(mqtt_port));
+	page.replace(F("{{coogleiot_version}}"), htmlEncode(COOGLEIOT_VERSION));
+	page.replace(F("{{coogleiot_ap_ssid}}"), htmlEncode(ap_name));
+	page.replace(F("{{wifi_ip_address}}"), htmlEncode(local_ip));
+	page.replace(F("{{mac_address}}"), htmlEncode(mac_address));
+	page.replace(F("{{wifi_status}}"), htmlEncode(wifi_status));
+	page.replace(F("{{mqtt_status}}"), iot->mqttActive() ? "Active" : "Not Connected");
+	page.replace(F("{{ntp_status}}"), iot->ntpActive() ? "Active" : "Not Connected");
+	page.replace(F("{{dns_status}}"), iot->dnsActive() ? "Active" : "Disabled");
+	page.replace(F("{{firmware_update_status}}"), iot->firmwareClientActive() ? "Active" : "Disabled");
+	page.replace(F("{{coogleiot_ap_status}}"), iot->apStatus() ? "Active" : "Disabled");
 
     webServer->send(200, "text/html", page.c_str());
 }

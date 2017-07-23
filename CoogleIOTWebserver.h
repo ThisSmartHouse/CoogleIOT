@@ -50,6 +50,7 @@ class CoogleIOTWebserver
 		CoogleIOTWebserver& setServerPort(int port);
 
 		String htmlEncode(String&);
+		String htmlEncode(char *);
 
 		bool initialize();
 		void handleRoot();

@@ -39,8 +39,10 @@
 
 #include "CoogleEEPROM.h"
 #include "CoogleIOTWebserver.h"
-#include "user_interface.h"
 
+#include <user_interface.h>
+
+station_status_t wifi_station_get_connect_status(void);
 extern "C" void __coogle_iot_firmware_timer_callback(void *);
 
 class CoogleIOTWebserver;
@@ -77,6 +79,7 @@ class CoogleIOT
         String filterAscii(String);
         int getMQTTPort();
         String getFirmwareUpdateUrl();
+        String getWiFiStatus();
 
         bool verifyFlashConfiguration();
 
@@ -91,6 +94,12 @@ class CoogleIOT
         CoogleIOT& setAPPassword(String);
         CoogleIOT& setFirmwareUpdateUrl(String);
         CoogleIOT& syncNTPTime(int, int);
+
+        bool mqttActive();
+        bool dnsActive();
+        bool ntpActive();
+        bool firmwareClientActive();
+        bool apStatus();
 
         void checkForFirmwareUpdate();
 
@@ -109,7 +118,10 @@ class CoogleIOT
         os_timer_t firmwareUpdateTimer;
         
         bool mqttClientActive = false;
-
+        bool dnsServerActive = false;
+        bool ntpClientActive = false;
+        bool _firmwareClientActive = false;
+        bool _apStatus = false;
 
         void initializeLocalAP();
         void enableConfigurationMode();

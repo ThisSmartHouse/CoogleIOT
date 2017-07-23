@@ -33,9 +33,9 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
   <body>
     <h3>CoogleIOT Device Setup</h3>
     <div class="tabs" style="margin-top: 5px; margin-bottom: 5px;">
-      <input type="radio" name="tabdemo" id="tab1" checked="" aria-hidden="true">
+      <input type="radio" name="navtabs" id="tab1" checked="" aria-hidden="true">
       <label for="tab1" aria-hidden="true">WiFi</label>
-        <div style="height: 500px">
+        <div style="height: 600px">
          <form>
          <fieldset>
            <legend>Device Wireless Setup</legend>
@@ -63,9 +63,9 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
          </fieldset>
         </form>
       </div>
-      <input type="radio" name="tabdemo" id="tab2" aria-hidden="true">
+      <input type="radio" name="navtabs" id="tab2" aria-hidden="true">
       <label for="tab2" aria-hidden="true">MQTT</label>
-      <div style="height: 500px">
+      <div style="height: 600px">
         <form>
         <fieldset>
           <legend>MQTT Client Configuration</legend>
@@ -92,9 +92,9 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
         </fieldset>
         </form>
       </div>
-      <input type="radio" name="tabdemo" id="tab3" aria-hidden="true">
+      <input type="radio" name="navtabs" id="tab3" aria-hidden="true">
       <label for="tab3" aria-hidden="true">System</label>
-      <div style="height: 500px">
+      <div style="height: 600px">
         <h3>System Commands</h3>
         <button class="secondary large" id="resetEEPROMBtn">Reset EEPROM (factory reset)</button>
         <button class="primary large" id="reloadBtn">Reboot</button>
@@ -115,6 +115,43 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
           </div>
         </fieldset>
         </form>
+      </div>
+      <input type="radio" name="navtabs" id="tab4" aria-hidden="true">
+      <label for="tab4" aria-hidden="true">Status</label>
+      <div style="height: 600px">
+        <table class="horizontal">
+          <caption>CoogleIOT Status</caption>
+          <thead>
+            <tr>
+              <th>CoogleIOT Version</th>
+              <th>CoogleIOT AP Status</th>
+              <th>CoogleIOT AP SSID</th>
+              <th>WiFi Status</th>
+              <th>WiFi SSID</th>
+              <th>LAN IP Address</th>
+              <th>MQTT Status</th>
+              <th>NTP Status</th>
+              <th>DNS Server Status</th>
+              <th>Firmware Updates</th>
+              <th>MAC Address</th>
+            </tr>
+         </thead>
+         <tbody>
+           <tr>
+             <td data-label="CoogleIOT Version">{{coogleiot_version}}</td>
+             <td data-label="CoogleIOT AP Status">{{coogleiot_ap_status}}</td>
+             <td data-label="CoogleIOT AP SSID">{{coogleiot_ap_ssid}}</td>
+             <td data-label="WiFi Status">{{wifi_status}}</td>
+             <td data-label="WiFi SSID">{{remote_ap_name}}</td>
+             <td data-label="LAN IP Address">{{wifi_ip_address}}</td>
+             <td data-label="MQTT Status">{{mqtt_status}}</td>
+             <td data-label="NTP Status">{{ntp_status}}</td>
+             <td data-label="DNS Server Status">{{dns_status}}</td>
+             <td data-label="Firmware Updates">{{firmware_update_status}}</td>
+             <td data-label="MAC Address">{{mac_address}}</td>
+           </tr>
+         </tbody>
+        </table>
       </div>
     </div>
     <button class="primary bordered" style="width: 100%" id="saveBtn">Save and Restart</button>

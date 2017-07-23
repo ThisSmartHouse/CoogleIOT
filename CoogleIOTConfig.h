@@ -1,7 +1,7 @@
 #ifndef COOGLEIOT_CONFIG_H
 #define COOGLEIOT_CONFIG_H
 
-#define COOGLEIOT_DEBUG
+//#define COOGLEIOT_DEBUG
 
 #define COOGLEIOT_VERSION "0.1b"
 

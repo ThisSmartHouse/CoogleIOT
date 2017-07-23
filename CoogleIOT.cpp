@@ -120,6 +120,58 @@ CoogleIOT& CoogleIOT::flashSOS()
 	return *this;
 }
 
+bool CoogleIOT::mqttActive()
+{
+	return mqttClientActive;
+}
+
+bool CoogleIOT::dnsActive()
+{
+	return dnsServerActive;
+}
+
+bool CoogleIOT::ntpActive()
+{
+	return ntpClientActive;
+}
+
+bool CoogleIOT::firmwareClientActive()
+{
+	return _firmwareClientActive;
+}
+
+bool CoogleIOT::apStatus()
+{
+	return _apStatus;
+}
+
+String CoogleIOT::getWiFiStatus()
+{
+
+	String retval;
+
+    switch(WiFi.status()) {
+        case WL_CONNECTED:
+            retval = "Connected";
+            break;
+        case WL_NO_SSID_AVAIL:
+            retval = "No SSID Available";
+            break;
+        case WL_CONNECT_FAILED:
+            retval = "Failed to Connect";
+            break;
+        case WL_IDLE_STATUS:
+            retval = "Idle";
+            break;
+        case WL_DISCONNECTED:
+        default:
+            retval = "Disconnected";
+            break;
+    }
+
+    return retval;
+}
+
 CoogleIOT& CoogleIOT::syncNTPTime(int offsetSeconds, int daylightOffsetSec)
 {
 	if(!WiFi.status() == WL_CONNECTED) {
@@ -154,6 +206,12 @@ CoogleIOT& CoogleIOT::syncNTPTime(int offsetSeconds, int daylightOffsetSec)
 		if(_serial) {
 			Serial.println("WARNING: Failed to synchronize time with time server!");
 		}
+	} else {
+		if(_serial) {
+			Serial.println("Time successfully synchronized with NTP server");
+		}
+
+		ntpClientActive = true;
 	}
 
 	return *this;
@@ -209,6 +267,9 @@ bool CoogleIOT::initialize()
 		eeprom.setApp((const byte *)COOGLEIOT_MAGIC_BYTES);
 	}
 	
+	WiFi.disconnect();
+	WiFi.setAutoConnect(false);
+	WiFi.setAutoReconnect(true);
 	WiFi.mode(WIFI_AP_STA);
 
 	if(!connectToSSID()) {
@@ -241,6 +302,8 @@ bool CoogleIOT::initialize()
 		if(_serial) {
 			Serial.printf("Firmware Automatic Update Will Occur every %d Milliseconds\n", COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS);
 		}
+
+		_firmwareClientActive = true;
 	}
 
 	return true;
@@ -377,13 +440,20 @@ void CoogleIOT::initializeLocalAP()
 			Serial.println("Enabled DNS Server, not connected to WiFi");
 		}
 
+		dnsServerActive = true;
+
 	} else {
 
 		if(_serial) {
 			Serial.println("Disabled DNS Server while connected to WiFi");
 		}
 
+		dnsServerActive = false;
+
 	}
+
+	_apStatus = true;
+
 }
 
 String CoogleIOT::getFirmwareUpdateUrl()
@@ -630,14 +700,17 @@ void CoogleIOT::checkForFirmwareUpdate()
 	LUrlParser::clParseURL URL;
 	int port;
 
-	os_intr_lock();
-
 	firmwareUrl = getFirmwareUpdateUrl();
 
 	if(firmwareUrl.length() == 0) {
-		os_intr_unlock();
 		return;
 	}
+
+	if(_serial) {
+		Serial.println("Checking for Firmware Updates");
+	}
+
+	os_intr_lock();
 
 	URL = LUrlParser::clParseURL::ParseURL(firmwareUrl.c_str());
 
@@ -735,12 +808,14 @@ bool CoogleIOT::connectToMQTT()
 	int mqttPort;
 
 	if(mqttClient->connected()) {
+		mqttClientActive = true;
 		return true;
 	}
 
 	if(WiFi.status() != WL_CONNECTED) {
 		if(_serial) {
 			Serial.println("Cannot connect to MQTT because we are not connected to WiFi");
+			mqttClientActive = false;
 			return false;
 		}
 	}
@@ -752,6 +827,7 @@ bool CoogleIOT::connectToMQTT()
 	mqttClientId = getMQTTClientId();
 
 	if(mqttHostname.length() == 0) {
+		mqttClientActive = false;
 		return false;
 	}
 
@@ -778,6 +854,7 @@ bool CoogleIOT::connectToMQTT()
 				Serial.println(mqttClient->state());
 				delay(5000);
 			}
+			mqttClientActive = false;
 		}
 	}
 	
@@ -902,15 +979,15 @@ bool CoogleIOT::connectToSSID()
 			Serial.println("WARNING No Remote AP Password Set");
 		}
 		
-		WiFi.begin(remoteAPName.c_str());
+		WiFi.begin(remoteAPName.c_str(), NULL, 0, NULL, true);
 		
 	} else {
 		
-		WiFi.begin(remoteAPName.c_str(), remoteAPPassword.c_str());
+		WiFi.begin(remoteAPName.c_str(), remoteAPPassword.c_str(), 0, NULL, true);
 		
 	}
 	
-	for(int i = 0; (i < 50) && (WiFi.status() != WL_CONNECTED); i++) {
+	for(int i = 0; (i < 50) && (WiFi.status() != WL_CONNECTED) && (WiFi.status() != WL_CONNECT_FAILED); i++) {
 		delay(500);
 		
 		if(_serial) {
