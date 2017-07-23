@@ -35,8 +35,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
     <div class="tabs" style="margin-top: 5px; margin-bottom: 5px;">
       <input type="radio" name="navtabs" id="tab1" checked="" aria-hidden="true">
       <label for="tab1" aria-hidden="true">WiFi</label>
-        <div style="height: 600px">
-         <form>
+        <div style="height: 500px">
          <fieldset>
            <legend>Device Wireless Setup</legend>
              <p>Settings for the device WiFi (as AP)</p>
@@ -61,12 +60,10 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
               <input aria-hidden="true"type="password" value="{{remote_ap_password}}" id="ap_remote_password">
            </div>
          </fieldset>
-        </form>
       </div>
       <input type="radio" name="navtabs" id="tab2" aria-hidden="true">
       <label for="tab2" aria-hidden="true">MQTT</label>
-      <div style="height: 600px">
-        <form>
+      <div style="height: 500px">
         <fieldset>
           <legend>MQTT Client Configuration</legend>
           <div class="input-group fluid">
@@ -90,15 +87,13 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
             <input aria-hidden="true" type="text" value="{{mqtt_client_id}}" id="mqtt_client_id" placeholder="my-client-id">
           </div>
         </fieldset>
-        </form>
       </div>
       <input type="radio" name="navtabs" id="tab3" aria-hidden="true">
       <label for="tab3" aria-hidden="true">System</label>
-      <div style="height: 600px">
+      <div style="height: 500px">
         <h3>System Commands</h3>
         <button class="secondary large" id="resetEEPROMBtn">Reset EEPROM (factory reset)</button>
         <button class="primary large" id="reloadBtn">Reboot</button>
-        <form>
         <fieldset>
           <legend>Firmware Updates</legend>
             <p>Device will check for updates every 30 minutes at this URL. See:<br><br>
@@ -108,17 +103,19 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
             <label aria-hidden="true" for="firmware_url">Firmware Update URL</label>
             <input aria-hidden="true" type="text" value="{{firmware_url}}" id="firmware_url" placeholder="http://example.com/updateEndpoint.php">
           </div>
-          <p>Alternatively, you can directly upload a new .bin firmware file by clicking this button:</p>
+          <p>Alternatively, you can directly upload a new .bin firmware file below:</p>
           <div class="input-group fluid">
-            <input type="file" id="firmware_file">
-            <label aria-hidden="true" for="firmware_file" class="button">Upload New Firmware</label>
+            <form action="/firmware-upload" method="POST" enctype="multipart/form-data">
+              <input type="file" id="firmware_file" name="update" accept=".bin">
+              <label aria-hidden="true" for="firmware_file" class="button">Step 1: Select Firmware</label>
+              <input type="submit" value="Step 2: Begin Upload">
+            </form>
           </div>
         </fieldset>
-        </form>
       </div>
       <input type="radio" name="navtabs" id="tab4" aria-hidden="true">
       <label for="tab4" aria-hidden="true">Status</label>
-      <div style="height: 600px">
+      <div style="height: 500px">
         <table class="horizontal">
           <caption>CoogleIOT Status</caption>
           <thead>
@@ -131,9 +128,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
               <th>LAN IP Address</th>
               <th>MQTT Status</th>
               <th>NTP Status</th>
-              <th>DNS Server Status</th>
               <th>Firmware Updates</th>
-              <th>MAC Address</th>
             </tr>
          </thead>
          <tbody>
@@ -146,9 +141,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
              <td data-label="LAN IP Address">{{wifi_ip_address}}</td>
              <td data-label="MQTT Status">{{mqtt_status}}</td>
              <td data-label="NTP Status">{{ntp_status}}</td>
-             <td data-label="DNS Server Status">{{dns_status}}</td>
              <td data-label="Firmware Updates">{{firmware_update_status}}</td>
-             <td data-label="MAC Address">{{mac_address}}</td>
            </tr>
          </tbody>
         </table>

@@ -60,6 +60,8 @@ class CoogleIOTWebserver
 		void handleSubmit();
 		void handleReset();
 		void handleRestart();
+		void handleFirmwareUpload();
+		void handleFirmwareUploadResponse();
 
 		void handleApiStatus();
 		void handleApiReset();
@@ -71,6 +73,7 @@ class CoogleIOTWebserver
 	private:
 		ESP8266WebServer* webServer;
 		CoogleIOT* iot;
+		bool _manualFirmwareUpdateSuccess = false;
 		int serverPort = 80;
 };
 

@@ -72,6 +72,12 @@ CoogleIOTWebserver& CoogleIOTWebserver::initializePages()
 	webServer->on("/api/restart", std::bind(&CoogleIOTWebserver::handleApiRestart, this));
 	webServer->on("/api/save", std::bind(&CoogleIOTWebserver::handleSubmit, this));
 
+	webServer->on("/firmware-upload",
+				  HTTP_POST,
+				  std::bind(&CoogleIOTWebserver::handleFirmwareUploadResponse, this),
+				  std::bind(&CoogleIOTWebserver::handleFirmwareUpload, this)
+	);
+
 	webServer->onNotFound(std::bind(&CoogleIOTWebserver::handle404, this));
 
 	return *this;
@@ -219,6 +225,90 @@ void CoogleIOTWebserver::handleCSS()
 void CoogleIOTWebserver::handle404()
 {
 	webServer->send_P(404, "text/html", WEBPAGE_NOTFOUND);
+}
+
+void CoogleIOTWebserver::handleFirmwareUploadResponse()
+{
+	if(_manualFirmwareUpdateSuccess) {
+		webServer->send_P(200, "text/html", WEBPAGE_Restart);
+		return;
+	}
+
+	webServer->send(200, "text/html", "There was an error uploading the firmware");
+
+}
+
+void CoogleIOTWebserver::handleFirmwareUpload()
+{
+	HTTPUpload& upload = webServer->upload();
+	uint32_t maxSketchSpace;
+
+	switch(upload.status) {
+		case UPLOAD_FILE_START:
+			WiFiUDP::stopAll();
+
+			if(iot->serialEnabled()) {
+				Serial.printf("Receiving Firmware Upload: %s\n", upload.filename.c_str());
+			}
+
+			maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+
+			if(!Update.begin(maxSketchSpace)) {
+				if(iot->serialEnabled()) {
+					Update.printError(Serial);
+				}
+
+				_manualFirmwareUpdateSuccess = false;
+			}
+
+			break;
+		case UPLOAD_FILE_WRITE:
+
+			if(iot->serialEnabled()) {
+				Serial.print(".");
+			}
+
+			if(Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+				if(iot->serialEnabled()) {
+					Update.printError(Serial);
+				}
+
+				_manualFirmwareUpdateSuccess = false;
+			}
+			break;
+
+		case UPLOAD_FILE_END:
+
+			if(Update.end(true)) {
+				if(iot->serialEnabled()) {
+					Serial.printf("Firmware updated (total size: %u)", upload.totalSize);
+				}
+
+				_manualFirmwareUpdateSuccess = true;
+
+			} else {
+				if(iot->serialEnabled()) {
+					Update.printError(Serial);
+				}
+
+				_manualFirmwareUpdateSuccess = false;
+			}
+
+			break;
+
+		case UPLOAD_FILE_ABORTED:
+			Update.end();
+
+			if(iot->serialEnabled()) {
+				Serial.println("Firmware upload aborted!");
+			}
+
+			_manualFirmwareUpdateSuccess = false;
+
+			break;
+	}
+
+	yield();
 }
 
 void CoogleIOTWebserver::handleSubmit()
