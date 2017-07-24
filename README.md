@@ -17,7 +17,21 @@ solid encapsulated framework for most of the common things you want to do on an 
 
 ## Screenshots
 
+WiFi Configuration
 
+![Wifi Configuration](https://raw.github.com/coogle/CoogleIOT/master/screenshots/wifi-screen.png)
+
+MQTT Client Configuration
+
+![MQTT Configuration](https://raw.github.com/coogle/CoogleIOT/master/screenshots/mqtt-screen.png)
+
+System Configuration
+
+![System Configuration](https://raw.github.com/coogle/CoogleIOT/master/screenshots/system-screen.png)
+
+Status Page
+
+![Status Page](https://raw.github.com/coogle/CoogleIOT/master/screenshots/status-screen.png)
 
 ## Example
 
@@ -197,3 +211,100 @@ void mqttCallbackHandler(char *topic, byte *payload, unsigned int length)
 	}
 }
 ```
+
+## API
+
+CoogleIOT is an evolving code base, so this API may change before this document is updated to reflect that. The best source is the source. When possible CoogleIOT uses a fluent interface, allowing you to chain method calls together:
+
+```
+  // Chaining method calls together
+  iot->enableSerial(115200)
+     ->initialize();
+```
+
+`void CoogleIOT::CoogleIOT(status_led_pin = NULL)` 
+The library constructor. You may provide an optional pin to use for a status LED which will be used to indicate different
+states the device can be in (i.e. WiFi initializing, etc.)
+
+`bool CoogleIOT::initialize()`
+Must be called in `setup()` of your sketch to initialize the library and it's components
+
+`void CoogleIOT::loop()`
+Must be called in `loop()` of your sketch
+
+`CoogleIOT& CoogleIOT::enableSerial(int baud = 115200)`
+Enables Serial output from the IOT library. Will initialize the `Serial` object for you at the baud rate specified if not
+already initialized.
+
+`PubSubClient* CoogleIOT::getMQTTClient()`
+Return a pointer to the built in PubSubClient to use in your sketch
+
+`bool CoogleIOT::serialEnabled()`
+Returns true if Serial is enabled
+
+`CoogleIOT& CoogleIOT::flashStatus(speed_in_ms, repeat = 5)`
+Flashes the defined pin / LED at a speed, repeating as defined (5 times by default)
+
+`CoogleIOT& CoogleIOT::flashSOS()`
+Flashes the status pin / LED in an SOS pattern (useful to indicate an error)
+
+`CoogleIOT& CoogleIOT::resetEEProm()`
+Resets the EEPROM memory used by CoogleIOT to NULL, effectively "factory resetting" the device
+
+`void CoogleIOT::restartDevice()`
+Restarts the device. Due to [This Bug](https://github.com/esp8266/Arduino/issues/1722), you must physically press the restart button on the ESP8266 after flashing via Serial. If you fail to do that, this command will hang the device.
+
+`String CoogleIOT::filterAscii()`
+Filters the provided string of anything that is not a printable ASCII character
+
+`bool CoogleIOT::verifyFlashConfiguration()`
+Verifies the Flash configuration for the device (what the device supports, vs. what the device is set as in your sketch) is
+correct.
+
+`CoogleIOT& CoogleIOT::syncNTPTime(int offsetSeconds, int daylightOffsetSeconds)`
+Synchronizes and sets the local device date / time based on NTP servers. Must have a working WiFi connection to use this
+method. The first parameter is the number of seconds local time is offset from UTC time (i.e. -5 hrs in seconds is America/New York). The second parameter is the number of seconds to offset based on daylight savings.
+
+`String CoogleIOT::getWiFiStatus()`
+Returns a string representing the current state of the WiFi Client
+
+`bool CoogleIOT::mqttActive()`
+Returns true/false indicating if the MQTT client is active and ready to use or not
+
+`bool CoogleIOT::dnsActive()`
+Returns true/false if the integrated captive portal DNS is enabled or not
+
+`bool CoogleIOT::ntpActive()`
+Returns true/false if the NTP client is online and synchronizing with NTP time servers
+
+`bool CoogleIOT::firmwareClientActive()`
+Returns true/false if the periodic firmware client (that will download a new firmware from a web server) is active or not. If active, the Firmware client will check every 30 minutes for a new firmware at the configured URL
+
+`bool CoogleIOT::apStatus()`
+Returns true/false if the AP of the device is active or not.
+
+`void CoogleIOT::checkForFirmwareUpdate()`
+Performs a check against the specified Firmware Server endpoint for a new version of this device's firmware. If a new version exists it performs the upgrade.
+
+The following getters/setters are pretty self explainatory. Each getter will return a `String` object of the value from EEPROM (or another primiative data type), with a matching setter:
+
+`String CoogleIOT::getRemoteAPName()`
+`CoogleIOT& CoogleIOT::setRemoteAPName(String)`
+`String CoogleIOT::getRemoteAPPassword()`
+`CoogleIOT& CoogleIOT::setRemoteAPPassword(String)`
+`String CoogleIOT::getMQTTHostname()`
+`CoogleIOT& CoogleIOT::setMQTTHostname(String)`
+`String CoogleIOT::getMQTTUsername()`
+`CoogleIOT& CoogleIOT::setMQTTUsername(String)`
+`String CoogleIOT::getMQTTPassword()`
+`CoogleIOT& CoogleIOT::setMQTTPassword(String)`
+`String CoogleIOT::getMQTTClientId()`
+`CoogleIOT& CoogleIOT::setMQTTClientId()`
+`int CoogleIOT::getMQTTPort()`
+`CoogleIOT& CoogleIOT::setMQTTPort(int)`
+`String CoogleIOT::getAPName()`
+`CoogleIOT& CoogleIOT::setAPName(String)`
+`String CoogleIOT::getAPPassword()`
+`CoogleIOT& CoogleIOT::setAPPassword(String)`
+`String CoogleIOT::getFirmwareUpdateUrl()`
+`CoogleIOT& CoogleIOT::setFirmwareUpdateUrl(String)`
