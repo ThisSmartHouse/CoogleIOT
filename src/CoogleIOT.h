@@ -25,6 +25,7 @@
 
 #include "EEPROM_map.h"
 #include "CoogleIOTConfig.h"
+#include <FS.h>
 
 #include "Arduino.h"
 
@@ -33,6 +34,9 @@
 #include <PubSubClient.h>
 #include <ESP8266httpUpdate.h>
 #include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "DNSServer/DNSServer.h"
 #include "LUrlParser/LUrlParser.h"
@@ -42,7 +46,14 @@
 
 #include <user_interface.h>
 
-station_status_t wifi_station_get_connect_status(void);
+typedef enum {
+	DEBUG,
+	INFO,
+	WARNING,
+	ERROR,
+	CRITICAL
+} CoogleIOT_LogSeverity;
+
 extern "C" void __coogle_iot_firmware_timer_callback(void *);
 
 class CoogleIOTWebserver;
@@ -96,6 +107,15 @@ class CoogleIOT
         CoogleIOT& setFirmwareUpdateUrl(String);
         CoogleIOT& syncNTPTime(int, int);
 
+        CoogleIOT& warn(String);
+        CoogleIOT& error(String);
+        CoogleIOT& critical(String);
+        CoogleIOT& log(String, CoogleIOT_LogSeverity);
+        CoogleIOT& logPrintf(CoogleIOT_LogSeverity, const char *format, ...);
+        CoogleIOT& debug(String);
+        CoogleIOT& info(String);
+        String buildLogMsg(String, CoogleIOT_LogSeverity);
+
         bool mqttActive();
         bool dnsActive();
         bool ntpActive();
@@ -116,6 +136,8 @@ class CoogleIOT
         PubSubClient *mqttClient;
         CoogleEEProm eeprom;
         CoogleIOTWebserver *webServer;
+        File logFile;
+
         os_timer_t firmwareUpdateTimer;
         
         bool mqttClientActive = false;

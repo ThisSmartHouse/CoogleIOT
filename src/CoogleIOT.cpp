@@ -34,7 +34,6 @@ CoogleIOT::CoogleIOT(int statusPin)
 {
     _statusPin = statusPin;
     _serial = false;
-
 }
 
 CoogleIOT::CoogleIOT()
@@ -46,6 +45,150 @@ CoogleIOT::~CoogleIOT()
 {
 	delete mqttClient;
 	delete webServer;
+
+	if(logFile) {
+		logFile.close();
+	}
+
+	SPIFFS.end();
+	Serial.end();
+
+	if(_firmwareClientActive) {
+		os_timer_disarm(&firmwareUpdateTimer);
+	}
+}
+
+String CoogleIOT::buildLogMsg(String msg, CoogleIOT_LogSeverity severity)
+{
+	String retval;
+	String timestamp;
+	struct tm* p_tm;
+
+	if(now) {
+		p_tm = localtime(&now);
+
+		timestamp = timestamp +
+				    p_tm->tm_year + "-" +
+				    p_tm->tm_mon + "-" +
+					p_tm->tm_mday + " " +
+					p_tm->tm_hour + ":" +
+					p_tm->tm_min + ":" +
+					p_tm->tm_sec;
+	} else {
+		timestamp = F("UKWN");
+	}
+
+	switch(severity) {
+		case DEBUG:
+			retval = "[DEBUG " + timestamp + "] " + msg;
+			break;
+		case INFO:
+			retval = "[INFO " + timestamp + "] " + msg;
+			break;
+		case WARNING:
+			retval = "[WARNING " + timestamp + "] " + msg;
+			break;
+		case ERROR:
+			retval = "[ERROR " + timestamp + "] " + msg;
+			break;
+		case CRITICAL:
+			retval = "[CRTICAL " + timestamp + "] " + msg;
+			break;
+		default:
+			retval = "[UNKNOWN " + timestamp + "] " + msg;
+			break;
+	}
+
+	return retval;
+}
+
+CoogleIOT& CoogleIOT::logPrintf(CoogleIOT_LogSeverity severity, const char *format, ...)
+{
+    va_list arg;
+    va_start(arg, format);
+    char temp[64];
+    char* buffer = temp;
+    size_t len = vsnprintf(temp, sizeof(temp), format, arg);
+    va_end(arg);
+
+    String logMsg;
+
+    if (len > sizeof(temp) - 1) {
+        buffer = new char[len + 1];
+        if (!buffer) {
+            return *this;
+        }
+        va_start(arg, format);
+        vsnprintf(buffer, len + 1, format, arg);
+        va_end(arg);
+    }
+
+    logMsg = String(buffer);
+    log(logMsg, severity);
+
+    if (buffer != temp) {
+        delete[] buffer;
+    }
+
+    return *this;
+}
+
+CoogleIOT& CoogleIOT::debug(String msg)
+{
+	return log(msg, DEBUG);
+}
+
+CoogleIOT& CoogleIOT::info(String msg)
+{
+	return log(msg, INFO);
+}
+
+CoogleIOT& CoogleIOT::warn(String msg)
+{
+	return log(msg, WARNING);
+}
+
+CoogleIOT& CoogleIOT::error(String msg)
+{
+	return log(msg, ERROR);
+}
+
+CoogleIOT& CoogleIOT::critical(String msg)
+{
+	return log(msg, CRITICAL);
+}
+
+CoogleIOT& CoogleIOT::log(String msg, CoogleIOT_LogSeverity severity)
+{
+	String logMsg = buildLogMsg(msg, severity);
+	FSInfo logFileInfo;
+
+	if(_serial) {
+		Serial.println(logMsg);
+	}
+
+	if(!logFile) {
+		return *this;
+	}
+
+	SPIFFS.info(logFileInfo);
+
+	if((logFileInfo.totalBytes + msg.length()) > COOGLEIOT_LOGFILE_MAXSIZE) {
+		logFile.close();
+		SPIFFS.remove(COOGLEIOT_SPIFFS_LOGFILE);
+		logFile = SPIFFS.open(COOGLEIOT_SPIFFS_LOGFILE, "w");
+
+		if(!logFile) {
+			if(_serial) {
+				Serial.println("ERROR Could not open SPIFFS log file!");
+			}
+			return *this;
+		}
+	}
+
+	logFile.println(logMsg);
+
+	return *this;
 }
 
 bool CoogleIOT::serialEnabled()
@@ -96,16 +239,16 @@ void CoogleIOT::loop()
 		if(_serial) {
 			switch(firmwareUpdateStatus) {
 				case HTTP_UPDATE_FAILED:
-					Serial.println("Warning! Failed to update firmware with specified URL");
+					warn("Warning! Failed to update firmware with specified URL");
 					break;
 				case HTTP_UPDATE_NO_UPDATES:
-					Serial.println("Firmware update check completed - at current version");
+					info("Firmware update check completed - at current version");
 					break;
 				case HTTP_UPDATE_OK:
-					Serial.println("Firmware updated!");
+					info("Firmware Updated!");
 					break;
 				default:
-					Serial.println("Warning! No updated performed. Perhaps an invalid URL?");
+					warn("Warning! No updated performed. Perhaps an invalid URL?");
 					break;
 			}
 		}
@@ -181,42 +324,24 @@ String CoogleIOT::getWiFiStatus()
 CoogleIOT& CoogleIOT::syncNTPTime(int offsetSeconds, int daylightOffsetSec)
 {
 	if(!WiFi.status() == WL_CONNECTED) {
-
-		if(_serial) {
-			Serial.println("Cannot synchronize time with NTP Servers - No WiFi Connection");
-		}
-
+		warn("Cannot synchronize time with NTP Servers - No WiFi Connection");
 		return *this;
 	}
 
 	if(_serial) {
-		Serial.println("Synchronizing time on device with NTP Servers");
-		Serial.printf("Offset From UTC is %d seconds, daylight offset is %d seconds\n", offsetSeconds, daylightOffsetSec);
+		info("Synchronizing time on device with NTP Servers");
 	}
 
 	configTime(offsetSeconds, daylightOffsetSec, COOGLEIOT_NTP_SERVER_1, COOGLEIOT_NTP_SERVER_2, COOGLEIOT_NTP_SERVER_3);
 
 	for(int i = 0; (i < 10) && !time(nullptr); i++) {
 		delay(1000);
-
-		if(_serial) {
-			Serial.print(".");
-		}
-	}
-
-	if(_serial) {
-		Serial.println();
 	}
 
 	if(!(now = time(nullptr))) {
-		if(_serial) {
-			Serial.println("WARNING: Failed to synchronize time with time server!");
-		}
+		warn("Failed to synchronize with time server!");
 	} else {
-		if(_serial) {
-			Serial.println("Time successfully synchronized with NTP server");
-		}
-
+		info("Time successfully synchronized with NTP server");
 		ntpClientActive = true;
 	}
 
@@ -254,9 +379,7 @@ bool CoogleIOT::initialize()
 		flashStatus(COOGLEIOT_STATUS_INIT);
 	}
 	
-	if(_serial) {
-		Serial.println("Coogle IOT v" COOGLEIOT_VERSION " initializing..");
-	}
+	info("Coogle IOT v" COOGLEIOT_VERSION " initializing..");
 	
 	verifyFlashConfiguration();
 
@@ -264,32 +387,38 @@ bool CoogleIOT::initialize()
 	
 	eeprom.initialize(COOGLE_EEPROM_EEPROM_SIZE);
 
+	SPIFFS.begin();
+
 	if(!eeprom.isApp((const byte *)COOGLEIOT_MAGIC_BYTES)) {
 		
-		if(_serial) {
-			Serial.println("EEPROM not initialized for platform, erasing..");
-		}
+		info("EEPROM not initialized for platform, erasing..");
+
 		eeprom.reset();
 		eeprom.setApp((const byte *)COOGLEIOT_MAGIC_BYTES);
+		SPIFFS.format();
 	}
 	
+	logFile = SPIFFS.open(COOGLEIOT_SPIFFS_LOGFILE, "w");
+
+	if(!logFile) {
+		error("Could not open SPIFFS log file!");
+	} else {
+		info("Log file successfully opened");
+	}
+
 	WiFi.disconnect();
 	WiFi.setAutoConnect(false);
 	WiFi.setAutoReconnect(true);
 	WiFi.mode(WIFI_AP_STA);
 
 	if(!connectToSSID()) {
-		if(_serial) {
-			Serial.println("Failed to connect to AP");
-		}
+		error("Failed to connect to remote AP");
 	} else {
 	
 		syncNTPTime(COOGLEIOT_TIMEZONE_OFFSET, COOGLEIOT_DAYLIGHT_OFFSET);
 
 		if(!initializeMQTT()) {
-			if(_serial) {
-				Serial.println("Failed to connect to MQTT");
-			}
+			error("Failed to connect to MQTT Server");
 		}
 
 	}
@@ -305,9 +434,7 @@ bool CoogleIOT::initialize()
 		os_timer_setfn(&firmwareUpdateTimer, __coogle_iot_firmware_timer_callback, NULL);
 		os_timer_arm(&firmwareUpdateTimer, COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS, true);
 
-		if(_serial) {
-			Serial.printf("Firmware Automatic Update Will Occur every %d Milliseconds\n", COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS);
-		}
+		info("Automatic Firmware Update Enabled");
 
 		_firmwareClientActive = true;
 	}
@@ -356,23 +483,14 @@ bool CoogleIOT::verifyFlashConfiguration()
 
 void CoogleIOT::enableConfigurationMode()
 {
-	if(_serial) {
-		Serial.println("Enabling Configuration Mode");
-	}
+	info("Enabling Configuration Mode");
 
 	initializeLocalAP();
-
-	if(_serial) {
-		Serial.println("CIOT: Creating Webserver");
-	}
 
 	webServer = new CoogleIOTWebserver(*this);
 
 	if(!webServer->initialize()) {
-		if(_serial) {
-			Serial.println("Failed to initialize Web Server");
-		}
-
+		error("Failed to initialize configuration web server");
 		flashSOS();
 	}
 }
@@ -390,10 +508,8 @@ void CoogleIOT::initializeLocalAP()
 	localAPPassword = getAPPassword();
 	
 	if(localAPPassword.length() == 0) {
-		if(_serial) {
-			Serial.println("No AP Password found in memory");
-			Serial.println("Setting to default password: " COOGLEIOT_AP_DEFAULT_PASSWORD);
-		}
+		info("No AP Password found in memory");
+		info("Setting to default password: " COOGLEIOT_AP_DEFAULT_PASSWORD);
 
 		localAPPassword = COOGLEIOT_AP_DEFAULT_PASSWORD;
 		setAPPassword(localAPPassword);
@@ -401,59 +517,35 @@ void CoogleIOT::initializeLocalAP()
 	}
 
 	if(localAPName.length() == 0) {
-		if(_serial) {
-			Serial.println("No AP Name found in memory. Auto-generating AP name");
-		}
+		info("No AP Name found in memory. Auto-generating AP name.");
 
 		localAPName = COOGLEIOT_AP;
 		localAPName.concat((int)random(100000, 999999));
 
-		if(_serial) {
-			Serial.print("Setting AP Name To: ");
-			Serial.println(localAPName);
-		}
+		info("Setting AP Name To: " );
+		info(localAPName);
 
 		setAPName(localAPName);
-
-		localAPName = getAPName();
-
-		Serial.print("AP Name is: ");
-		Serial.println(localAPName);
 	}
 	
-	if(_serial) {
-		Serial.println("Initializing WiFi");
-		Serial.print("Local AP Name: ");
-		Serial.println(localAPName);
-	}
+	info("Intiailzing Access Point");
 
 	WiFi.softAPConfig(apLocalIP, apGateway, apSubnetMask);
 	WiFi.softAP(localAPName.c_str(), localAPPassword.c_str());
 	
-	if(_serial) {
-		Serial.print("Local IP Address: ");
-		Serial.println(WiFi.softAPIP());
-	}
-	
-	if(_serial) {
-		Serial.println("Initializing DNS Server");
-	}
+	info("Local IP Address: ");
+	info(WiFi.softAPIP().toString());
 
 	if(WiFi.status() != WL_CONNECTED) {
+
+		info("Initializing DNS Server");
+
 		dnsServer.start(COOGLEIOT_DNS_PORT, "*", WiFi.softAPIP());
-
-		if(_serial) {
-			Serial.println("Enabled DNS Server, not connected to WiFi");
-		}
-
 		dnsServerActive = true;
 
 	} else {
 
-		if(_serial) {
-			Serial.println("Disabled DNS Server while connected to WiFi");
-		}
-
+		info("Disabled DNS Server while connected to WiFI");
 		dnsServerActive = false;
 
 	}
@@ -467,9 +559,7 @@ String CoogleIOT::getFirmwareUpdateUrl()
 	char firmwareUrl[COOGLEIOT_FIRMWARE_UPDATE_URL_MAXLEN];
 
 	if(!eeprom.readString(COOGLEIOT_FIRMWARE_UPDATE_URL_ADDR, firmwareUrl, COOGLEIOT_FIRMWARE_UPDATE_URL_MAXLEN)) {
-		if(_serial) {
-			Serial.println("Failed to read Firmware Update URL");
-		}
+		error("Failed to read Firmware Update URL from EEPROM");
 	}
 
 	String retval(firmwareUrl);
@@ -481,9 +571,7 @@ String CoogleIOT::getMQTTHostname()
 	char mqttHost[COOGLEIOT_MQTT_HOST_MAXLEN];
 
 	if(!eeprom.readString(COOGLEIOT_MQTT_HOST_ADDR, mqttHost, COOGLEIOT_MQTT_HOST_MAXLEN)) {
-		if(_serial) {
-			Serial.println("Failed to read MQTT Server Hostname");
-		}
+		error("Failed to read MQTT Server Hostname from EEPROM");
 	}
 
 	String retval(mqttHost);
@@ -495,9 +583,7 @@ String CoogleIOT::getMQTTClientId()
 	char mqtt[COOGLEIOT_MQTT_CLIENT_ID_MAXLEN];
 
 	if(!eeprom.readString(COOGLEIOT_MQTT_CLIENT_ID_ADDR, mqtt, COOGLEIOT_MQTT_CLIENT_ID_MAXLEN)) {
-		if(_serial) {
-			Serial.println("Failed to read MQTT Client ID");
-		}
+		error("Failed to read MQTT Client ID from EEPROM");
 	}
 
 	String retval(mqtt);
@@ -509,9 +595,7 @@ String CoogleIOT::getMQTTUsername()
 	char mqtt[COOGLEIOT_MQTT_USER_MAXLEN];
 
 	if(!eeprom.readString(COOGLEIOT_MQTT_USER_ADDR, mqtt, COOGLEIOT_MQTT_USER_MAXLEN)) {
-		if(_serial) {
-			Serial.println("Failed to read MQTT Username");
-		}
+		error("Failed to read MQTT Username from EEPROM");
 	}
 
 	String retval(mqtt);
@@ -523,9 +607,7 @@ String CoogleIOT::getMQTTPassword()
 	char mqtt[COOGLEIOT_MQTT_USER_PASSWORD_MAXLEN];
 
 	if(!eeprom.readString(COOGLEIOT_MQTT_USER_PASSWORD_ADDR, mqtt, COOGLEIOT_MQTT_USER_PASSWORD_MAXLEN)) {
-		if(_serial) {
-			Serial.println("Failed to read MQTT Password");
-		}
+		error("Failed to read MQTT Password from EEPROM");
 	}
 
 	String retval(mqtt);
@@ -537,9 +619,7 @@ int CoogleIOT::getMQTTPort()
 	int mqtt;
 
 	if(!eeprom.readInt(COOGLEIOT_MQTT_PORT_ADDR, &mqtt)) {
-		if(_serial) {
-			Serial.println("Failed to read MQTT Port");
-		}
+		error("Failed to read MQTT Port from EEPROM");
 	}
 
 	return mqtt;
@@ -548,9 +628,7 @@ int CoogleIOT::getMQTTPort()
 CoogleIOT& CoogleIOT::setMQTTPort(int port)
 {
 	if(!eeprom.writeInt(COOGLEIOT_MQTT_PORT_ADDR, port)) {
-		if(_serial) {
-			Serial.println("Failed to write MQTT Port to memory!");
-		}
+		error("Failed to write MQTT Port to EEPROM");
 	}
 
 	return *this;
@@ -559,16 +637,12 @@ CoogleIOT& CoogleIOT::setMQTTPort(int port)
 CoogleIOT& CoogleIOT::setFirmwareUpdateUrl(String s)
 {
 	if(s.length() > COOGLEIOT_FIRMWARE_UPDATE_URL_MAXLEN) {
-		if(_serial) {
-			Serial.println("Attempted to write beyond max length!");
-		}
+		warn("Attempted to write beyond max length for Firmware Update URL");
 		return *this;
 	}
 
 	if(!eeprom.writeString(COOGLEIOT_FIRMWARE_UPDATE_URL_ADDR, s)) {
-		if(_serial) {
-			Serial.println("Failed to write Firmware Update URL");
-		}
+		error("Failed to write Firmware Update URL to EEPROM");
 	}
 
 	return *this;
@@ -577,16 +651,12 @@ CoogleIOT& CoogleIOT::setFirmwareUpdateUrl(String s)
 CoogleIOT& CoogleIOT::setMQTTClientId(String s)
 {
 	if(s.length() > COOGLEIOT_MQTT_CLIENT_ID_MAXLEN) {
-		if(_serial) {
-			Serial.println("Attempted to write beyond max length!");
-		}
+		warn("Attempted to write beyond max length for MQTT Client ID");
 		return *this;
 	}
 
 	if(!eeprom.writeString(COOGLEIOT_MQTT_CLIENT_ID_ADDR, s)) {
-		if(_serial) {
-			Serial.println("Failed to write MQTT default Client ID");
-		}
+		error("Failed to write MQTT Client ID to EEPROM");
 	}
 
 	return *this;
@@ -595,17 +665,13 @@ CoogleIOT& CoogleIOT::setMQTTClientId(String s)
 CoogleIOT& CoogleIOT::setMQTTHostname(String s)
 {
 	if(s.length() > COOGLEIOT_MQTT_HOST_MAXLEN) {
-		if(_serial) {
-			Serial.println("Attempted to write beyond max length!");
-		}
+		warn("Attempted to write beyond max length for MQTT Hostname");
 		return *this;
 	}
 
 	if(!eeprom.writeString(COOGLEIOT_MQTT_HOST_ADDR, s)) {
-			if(_serial) {
-				Serial.println("Failed to write MQTT default Client ID");
-			}
-		}
+		error("Failed to write MQTT Hostname to EEPROM");
+	}
 
 	return *this;
 }
@@ -613,17 +679,13 @@ CoogleIOT& CoogleIOT::setMQTTHostname(String s)
 CoogleIOT& CoogleIOT::setMQTTUsername(String s)
 {
 	if(s.length() > COOGLEIOT_MQTT_USER_MAXLEN) {
-		if(_serial) {
-			Serial.println("Attempted to write beyond max length!");
-		}
+		warn("Attempted to write beyond max length for MQTT Username");
 		return *this;
 	}
 
 	if(!eeprom.writeString(COOGLEIOT_MQTT_USER_ADDR, s)) {
-			if(_serial) {
-				Serial.println("Failed to write MQTT default Client ID");
-			}
-		}
+		error("Failed to write MQTT Username to EEPROM");
+	}
 
 	return *this;
 }
@@ -631,17 +693,13 @@ CoogleIOT& CoogleIOT::setMQTTUsername(String s)
 CoogleIOT& CoogleIOT::setMQTTPassword(String s)
 {
 	if(s.length() > COOGLEIOT_MQTT_USER_PASSWORD_MAXLEN) {
-		if(_serial) {
-			Serial.println("Attempted to write beyond max length!");
-		}
+		warn("Attempted to write beyond max length for MQTT Password");
 		return *this;
 	}
 
 	if(!eeprom.writeString(COOGLEIOT_MQTT_USER_PASSWORD_ADDR, s)) {
-			if(_serial) {
-				Serial.println("Failed to write MQTT default Client ID");
-			}
-		}
+		error("Failed to write MQTT Password to EEPROM");
+	}
 
 	return *this;
 }
@@ -649,16 +707,12 @@ CoogleIOT& CoogleIOT::setMQTTPassword(String s)
 CoogleIOT& CoogleIOT::setRemoteAPName(String s)
 {
 	if(s.length() > COOGLEIOT_REMOTE_AP_NAME_MAXLEN) {
-		if(_serial) {
-			Serial.println("Attempted to write beyond max length!");
-		}
+		warn("Attempted to write beyond max length for Remote AP name");
 		return *this;
 	}
 
 	if(!eeprom.writeString(COOGLEIOT_REMOTE_AP_NAME_ADDR, s)) {
-		if(_serial) {
-			Serial.println("Failed to write MQTT default Client ID");
-		}
+		error("Failed to write Remote AP name to EEPROM");
 	}
 
 	return *this;
@@ -667,17 +721,13 @@ CoogleIOT& CoogleIOT::setRemoteAPName(String s)
 CoogleIOT& CoogleIOT::setRemoteAPPassword(String s)
 {
 	if(s.length() > COOGLEIOT_REMOTE_AP_PASSWORD_MAXLEN) {
-		if(_serial) {
-			Serial.println("Attempted to write beyond max length!");
-		}
+		warn("Attempted to write beyond max length for Remote AP Password");
 		return *this;
 	}
 
 	if(!eeprom.writeString(COOGLEIOT_REMOTE_AP_PASSWORD_ADDR, s)) {
-			if(_serial) {
-				Serial.println("Failed to write MQTT default Client ID");
-			}
-		}
+		error("Failed to write Remote AP Password to EEPROM");
+	}
 
 	return *this;
 }
@@ -685,17 +735,13 @@ CoogleIOT& CoogleIOT::setRemoteAPPassword(String s)
 CoogleIOT& CoogleIOT::setAPName(String s)
 {
 	if(s.length() > COOGLEIOT_AP_NAME_MAXLEN) {
-		if(_serial) {
-			Serial.println("Attempted to write beyond max length!");
-		}
+		warn("Attempted to write beyond max length for AP Name");
 		return *this;
 	}
 
 	if(!eeprom.writeString(COOGLEIOT_AP_NAME_ADDR, s)) {
-			if(_serial) {
-				Serial.println("Failed to write MQTT default Client ID");
-			}
-		}
+		error("Failed to write AP Name to EEPROM");
+	}
 
 	return *this;
 }
@@ -712,9 +758,7 @@ void CoogleIOT::checkForFirmwareUpdate()
 		return;
 	}
 
-	if(_serial) {
-		Serial.println("Checking for Firmware Updates");
-	}
+	info("Checking for Firmware Updates");
 
 	os_intr_lock();
 
@@ -737,17 +781,13 @@ void CoogleIOT::checkForFirmwareUpdate()
 CoogleIOT& CoogleIOT::setAPPassword(String s)
 {
 	if(s.length() > COOGLEIOT_AP_PASSWORD_MAXLEN) {
-		if(_serial) {
-			Serial.println("Attempted to write beyond max length!");
-		}
+		warn("Attempted to write beyond max length for AP Password");
 		return *this;
 	}
 
 	if(!eeprom.writeString(COOGLEIOT_AP_PASSWORD_ADDR, s)) {
-			if(_serial) {
-				Serial.println("Failed to write AP Password");
-			}
-		}
+		error("Failed to write AP Password to EEPROM");
+	}
 
 	return *this;
 }
@@ -762,20 +802,15 @@ bool CoogleIOT::initializeMQTT()
 	mqttHostname = getMQTTHostname();
 
 	if(mqttHostname.length() == 0) {
-		
-		if(_serial) {
-			Serial.println("No MQTT Hostname specified. Cannot continue");
-			mqttClientActive = false;
-			return false;
-		}
+		info("No MQTT Hostname specified. Cannot Initialize MQTT");
+		mqttClientActive = false;
+		return false;
 	}
 	
 	mqttClientId = getMQTTClientId();
 
 	if(mqttClientId.length() == 0) {
-		if(_serial) {
-			Serial.println("Failed to read MQTT Client ID. Setting to Default");
-		}
+		info("Setting to default MQTT Client ID: " COOGLEIOT_DEFAULT_MQTT_CLIENT_ID);
 		
 		mqttClientId = COOGLEIOT_DEFAULT_MQTT_CLIENT_ID;
 		
@@ -785,19 +820,12 @@ bool CoogleIOT::initializeMQTT()
 	mqttPort = getMQTTPort();
 	
 	if(mqttPort == 0) {
-		if(_serial) {
-			Serial.println("Failed to read MQTT Port from memory. Setting to Default");
-		}
-		
+		info("Setting to default MQTT Port");
 		setMQTTPort(COOGLEIOT_DEFAULT_MQTT_PORT);
 	}
 	
 	mqttClient = new PubSubClient(espClient);
 	mqttClient->setServer(mqttHostname.c_str(), mqttPort);
-	
-	/**
-	 * @todo Callback here
-	 */
 	
 	return connectToMQTT();
 }
@@ -819,11 +847,9 @@ bool CoogleIOT::connectToMQTT()
 	}
 
 	if(WiFi.status() != WL_CONNECTED) {
-		if(_serial) {
-			Serial.println("Cannot connect to MQTT because we are not connected to WiFi");
-			mqttClientActive = false;
-			return false;
-		}
+		info("Cannot connect to MQTT because there is no WiFi Connection");
+		mqttClientActive = false;
+		return false;
 	}
 
 	mqttHostname = getMQTTHostname();
@@ -837,13 +863,7 @@ bool CoogleIOT::connectToMQTT()
 		return false;
 	}
 
-	if(_serial) {
-		Serial.println("Attempting to connect to MQTT Server");
-		Serial.print("Server: ");
-		Serial.print(mqttHostname);
-		Serial.print(":");
-		Serial.println(mqttPort);
-	}
+	info("Attempting to Connect to MQTT Server");
 	
 	for(int i = 0; (i < 5) && (!mqttClient->connected()); i++) {
 		
@@ -854,32 +874,23 @@ bool CoogleIOT::connectToMQTT()
 		}
 		
 		if(!connectResult) {
-			if(_serial) {
-				Serial.println("Could not connect to MQTT Server.. Retrying in 5 seconds..");
-				Serial.print("State: ");
-				Serial.println(mqttClient->state());
-				delay(5000);
-			}
+			warn("Attempt to connect to MQTT Server Failed");
+			delay(5000);
 			mqttClientActive = false;
 		}
 	}
 	
 	if(!mqttClient->connected()) {
-
-		if(_serial) {
-			Serial.println("Failed to connect to MQTT Server! Aborting.");
-		}
-		
+		error("Failed to connect to MQTT Server!");
 		flashSOS();
 		mqttClientActive = false;
 		return false;
 	}
 
-	if(_serial) {
-		Serial.println("MQTT Client Initialized!");
-	}
-	
+	info("MQTT Client Initialized");
+
 	mqttClientActive = true;
+
 	return true;
 }
 
@@ -888,9 +899,7 @@ String CoogleIOT::getAPName()
 	char APName[COOGLEIOT_AP_NAME_MAXLEN];
 
 	if(!eeprom.readString(COOGLEIOT_AP_NAME_ADDR, APName, COOGLEIOT_AP_NAME_MAXLEN)) {
-		if(_serial) {
-			Serial.println("Failed to read AP Name from EEPROM");
-		}
+		error("Failed to read AP name from EEPROM");
 	}
 
 	String retval(APName);
@@ -902,9 +911,7 @@ String CoogleIOT::getAPPassword()
 	char password[COOGLEIOT_AP_PASSWORD_MAXLEN];
 
 	if(!eeprom.readString(COOGLEIOT_AP_PASSWORD_ADDR, password, COOGLEIOT_AP_PASSWORD_MAXLEN)) {
-		if(_serial) {
-			Serial.println("Failed to read AP Password from EEPROM");
-		}
+		error("Failed to read AP Password from EEPROM");
 	}
 
 	String retval(password);
@@ -930,9 +937,7 @@ String CoogleIOT::getRemoteAPName()
 	char remoteAPName[COOGLEIOT_AP_NAME_MAXLEN];
 
 	if(!eeprom.readString(COOGLEIOT_REMOTE_AP_NAME_ADDR, remoteAPName, COOGLEIOT_REMOTE_AP_NAME_MAXLEN)) {
-		if(_serial) {
-			Serial.println("Failed to read Remote AP Name from EEPROM");
-		}
+		error("Failed to read Remote AP Name from EEPROM");
 		remoteAPName[0] = 0;
 	}
 
@@ -947,9 +952,7 @@ String CoogleIOT::getRemoteAPPassword()
 	char remoteAPPassword[COOGLEIOT_REMOTE_AP_PASSWORD_MAXLEN];
 
 	if(!eeprom.readString(COOGLEIOT_REMOTE_AP_PASSWORD_ADDR, remoteAPPassword, COOGLEIOT_REMOTE_AP_PASSWORD_MAXLEN)) {
-		if(_serial) {
-			Serial.println("Failed to read remote AP password from EEPROM");
-		}
+		error("Failed to read remote AP Password from EEPROM");
 	}
 
 	String retval(remoteAPPassword);
@@ -967,24 +970,15 @@ bool CoogleIOT::connectToSSID()
 	remoteAPPassword = getRemoteAPPassword();
 	
 	if(remoteAPName.length() == 0) {
-	
-		if(_serial) {
-			Serial.println("No Remote AP Found in memory");
-		}
-		
+		info("Cannot connect WiFi client, no remote AP specified");
 		return false;
 	} 
 	
-	if(_serial) {
-		Serial.print("Connecting to AP: ");
-		Serial.println(remoteAPName);
-	}
+	info("Connecting to remote AP");
 	
 	if(remoteAPPassword.length() == 0) {
-		if(_serial) {
-			Serial.println("WARNING No Remote AP Password Set");
-		}
-		
+		warn("No Remote AP Password Specified!");
+
 		WiFi.begin(remoteAPName.c_str(), NULL, 0, NULL, true);
 		
 	} else {
@@ -995,31 +989,19 @@ bool CoogleIOT::connectToSSID()
 	
 	for(int i = 0; (i < 50) && (WiFi.status() != WL_CONNECTED) && (WiFi.status() != WL_CONNECT_FAILED); i++) {
 		delay(500);
-		
-		if(_serial) {
-			Serial.print('.');
-		}
-		
 	}
 	
 	if(WiFi.status() != WL_CONNECTED) {
-		if(_serial) {
-			Serial.println("\nERROR: Could not connect to AP!");
-			WiFi.printDiag(Serial);
-		}
-		
+		error("Could not connec to Access Point!");
 		flashSOS();
 		
 		return false;
 	}
 	
-	if(_serial) {
-		Serial.println("");
-		Serial.println("Connected to Remote AP");
-		Serial.print("Remote IP Address: ");
-		Serial.println(WiFi.localIP());
-	}
-	
+	info("Connected to Remote Access Point!");
+	info("Our IP Address is:");
+	info(WiFi.localIP().toString());
+
 	return true;
 }
 

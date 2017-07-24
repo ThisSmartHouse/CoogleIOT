@@ -144,6 +144,11 @@ void mqttCallbackHandler(char *topic, byte *payload, unsigned int length)
 	action = String(payloadStr);
 	free(payloadStr);
 
+	// We support three commands. The first is just an integer which represents
+	// a frequency in MS to toggle the switch on/off. My particular garage door
+	// uses a frequency like this to distinguish between open/close and other actions
+	// like turn on the integrate garage light or not.
+
 	if(action.toInt() > 0) {
 
 		if(iot->serialEnabled()) {
@@ -167,4 +172,3 @@ void mqttCallbackHandler(char *topic, byte *payload, unsigned int length)
 			Serial.printf("Unknown Command issued: %s\n", action.c_str());
 		}
 	}
-}

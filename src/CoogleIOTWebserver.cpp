@@ -37,10 +37,7 @@ CoogleIOTWebserver::CoogleIOTWebserver(CoogleIOT &_iot)
 
 	this->serverPort = 80;
 
-	if(iot->serialEnabled()) {
-		Serial.print("Creating WebServer listening on port ");
-		Serial.println(this->serverPort);
-	}
+	iot->info("Creating Configuration Web Server");
 
 	setWebserver(new ESP8266WebServer(this->serverPort));
 }
@@ -51,11 +48,7 @@ CoogleIOTWebserver::CoogleIOTWebserver(CoogleIOT& _iot, int port)
 
 	this->serverPort = port;
 
-	if(iot->serialEnabled()) {
-		Serial.print("Creating WebServer listening on port ");
-		Serial.println(this->serverPort);
-	}
-
+	iot->info("Creating Configuration Web Server");
 	setWebserver(new ESP8266WebServer(this->serverPort));
 }
 
@@ -108,16 +101,12 @@ CoogleIOTWebserver& CoogleIOTWebserver::setIOT(CoogleIOT& _iot)
 
 bool CoogleIOTWebserver::initialize()
 {
-	if(iot->serialEnabled()) {
-		Serial.println("Initialzing Webserver...");
-	}
+	iot->info("Initializing Webserver");
 
 	initializePages();
 	webServer->begin();
 
-	if(iot->serialEnabled()) {
-		Serial.println("Webserver Initialized!");
-	}
+	iot->info("Webserver Initiailized!");
 
 	return true;
 }
@@ -252,13 +241,13 @@ void CoogleIOTWebserver::handleFirmwareUpload()
 		case UPLOAD_FILE_START:
 			WiFiUDP::stopAll();
 
-			if(iot->serialEnabled()) {
-				Serial.printf("Receiving Firmware Upload: %s\n", upload.filename.c_str());
-			}
+			iot->info("Receiving Firmware Upload...");
 
 			maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 
 			if(!Update.begin(maxSketchSpace)) {
+				iot->error("Failed to begin Firmware Upload!");
+
 				if(iot->serialEnabled()) {
 					Update.printError(Serial);
 				}
@@ -269,11 +258,10 @@ void CoogleIOTWebserver::handleFirmwareUpload()
 			break;
 		case UPLOAD_FILE_WRITE:
 
-			if(iot->serialEnabled()) {
-				Serial.print(".");
-			}
-
 			if(Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+
+				iot->error("Failed to write Firmware Upload!");
+
 				if(iot->serialEnabled()) {
 					Update.printError(Serial);
 				}
@@ -285,13 +273,14 @@ void CoogleIOTWebserver::handleFirmwareUpload()
 		case UPLOAD_FILE_END:
 
 			if(Update.end(true)) {
-				if(iot->serialEnabled()) {
-					Serial.printf("Firmware updated (total size: %u)", upload.totalSize);
-				}
+
+				iot->info("Firmware updated!");
 
 				_manualFirmwareUpdateSuccess = true;
 
 			} else {
+				iot->error("Failed to update Firmware!");
+
 				if(iot->serialEnabled()) {
 					Update.printError(Serial);
 				}
@@ -304,9 +293,7 @@ void CoogleIOTWebserver::handleFirmwareUpload()
 		case UPLOAD_FILE_ABORTED:
 			Update.end();
 
-			if(iot->serialEnabled()) {
-				Serial.println("Firmware upload aborted!");
-			}
+			iot->info("Firmware upload aborted!");
 
 			_manualFirmwareUpdateSuccess = false;
 
