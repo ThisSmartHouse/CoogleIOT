@@ -308,3 +308,59 @@ The following getters/setters are pretty self explainatory. Each getter will ret
 `CoogleIOT& CoogleIOT::setAPPassword(String)`
 `String CoogleIOT::getFirmwareUpdateUrl()`
 `CoogleIOT& CoogleIOT::setFirmwareUpdateUrl(String)`
+
+## CoogleIOT Firmware Configuration
+
+The Firmware default values and settings are defined in the `CoogleIOTConfig.h` file and can be overriden by providing new `#define` statements
+
+`#define COOGLEIOT_STATUS_INIT 500`
+Defines the status LED flash speed in MS for initial initialization
+
+`#define COOGLEIOT_STATUS_WIFI_INIT 250`
+Defines the status LED flash speed for WiFi initialization
+
+`#define COOGLEIOT_STATUS_MQTT_INIT 100`
+Defines the status LED flash speed for MQTT initialization
+
+`#define COOGLEIOT_AP "COOGLEIOT_`
+Defines the prepended string used for the default AP name. The remainder of the AP name will be a randomly generated number (i.e. COOGLEIOT_234934)
+
+`#define COOGLEIOT_AP_DEFAULT_PASSWORD "coogleiot"`
+The default AP password
+
+`#define COOGLEIOT_DEFAULT_MQTT_CLIENT_ID "coogleIoT"`
+The default MQTT client ID
+
+`#define COOGLEIOT_DEFAULT_MQTT_PORT 1883`
+The default MQTT Port
+
+`#define COOGLEIOT_TIMEZONE_OFFSET ((3600 * 5) * -1)`
+The default NTP Timezone offset (America/New York)
+
+`#define COOGLEIOT_DAYLIGHT_OFFSET 0`
+The default NTP Daylight Offset
+
+`
+#define COOGLEIOT_NTP_SERVER_1 "pool.ntp.org"
+#define COOGLEIOT_NTP_SERVER_2 "time.nist.gov"
+#define COOGLEIOT_NTP_SERVER_3 "time.google.com"
+`
+The three default NTP servers to attempt to synchronize with
+
+`#define COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS 54000000  // 15 Minutes in Milliseconds`
+The frequency that we will check for a new Firmware Update if the server is configured. Defaults to 15 minutes.
+
+`#define COOGLEIOT_DNS_PORT 53`
+The default DNS port
+
+`#define COOGLE_EEPROM_EEPROM_SIZE 1024`
+The amount of EEPROM memory allocated to CoogleIOT, 1kb default. 
+
+*IMPORTANT NOTE:* 
+Do _NOT_ reduce this value below it's default value unless you really know what you are doing, otherwise you will break the firmware.
+
+`#define COOGLEIOT_WEBSERVER_PORT 80`
+The default Webserver port for the configuration system
+
+`#define COOGLEIOT_DEBUG`
+If defined, it will enable debugging mode for CoogleIOT which will dump lots of debugging data to the Serial port (if enabled)
