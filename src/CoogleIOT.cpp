@@ -42,6 +42,12 @@ CoogleIOT::CoogleIOT()
 	CoogleIOT(-1);
 }
 
+CoogleIOT::~CoogleIOT()
+{
+	delete mqttClient;
+	delete webServer;
+}
+
 bool CoogleIOT::serialEnabled()
 {
 	return _serial;

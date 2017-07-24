@@ -55,6 +55,7 @@ class CoogleIOT
 
         CoogleIOT(int);
         CoogleIOT();
+        ~CoogleIOT();
         void loop();
         bool initialize();
         CoogleIOT& enableSerial(int);

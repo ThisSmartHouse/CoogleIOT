@@ -59,6 +59,11 @@ CoogleIOTWebserver::CoogleIOTWebserver(CoogleIOT& _iot, int port)
 	setWebserver(new ESP8266WebServer(this->serverPort));
 }
 
+CoogleIOTWebserver::~CoogleIOTWebserver()
+{
+	delete webServer;
+}
+
 CoogleIOTWebserver& CoogleIOTWebserver::initializePages()
 {
 	webServer->on("/", std::bind(&CoogleIOTWebserver::handleRoot, this));

@@ -35,7 +35,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
     <div class="tabs" style="margin-top: 5px; margin-bottom: 5px;">
       <input type="radio" name="navtabs" id="tab1" checked="" aria-hidden="true">
       <label for="tab1" aria-hidden="true">WiFi</label>
-        <div style="height: 500px">
+        <div style="height: 600px">
          <fieldset>
            <legend>Device Wireless Setup</legend>
              <p>Settings for the device WiFi (as AP)</p>
@@ -63,7 +63,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
       </div>
       <input type="radio" name="navtabs" id="tab2" aria-hidden="true">
       <label for="tab2" aria-hidden="true">MQTT</label>
-      <div style="height: 500px">
+      <div style="height: 600px">
         <fieldset>
           <legend>MQTT Client Configuration</legend>
           <div class="input-group fluid">
@@ -90,7 +90,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
       </div>
       <input type="radio" name="navtabs" id="tab3" aria-hidden="true">
       <label for="tab3" aria-hidden="true">System</label>
-      <div style="height: 500px">
+      <div style="height: 600px">
         <h3>System Commands</h3>
         <button class="secondary large" id="resetEEPROMBtn">Reset EEPROM (factory reset)</button>
         <button class="primary large" id="reloadBtn">Reboot</button>
@@ -115,7 +115,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
       </div>
       <input type="radio" name="navtabs" id="tab4" aria-hidden="true">
       <label for="tab4" aria-hidden="true">Status</label>
-      <div style="height: 500px">
+      <div style="height: 600px">
         <table class="horizontal">
           <caption>CoogleIOT Status</caption>
           <thead>
@@ -128,6 +128,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
               <th>LAN IP Address</th>
               <th>MQTT Status</th>
               <th>NTP Status</th>
+              <th>DNS Status</th>
               <th>Firmware Updates</th>
             </tr>
          </thead>
@@ -141,6 +142,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
              <td data-label="LAN IP Address">{{wifi_ip_address}}</td>
              <td data-label="MQTT Status">{{mqtt_status}}</td>
              <td data-label="NTP Status">{{ntp_status}}</td>
+             <td data-label="DNS Status">{{dns_status}}</td>
              <td data-label="Firmware Updates">{{firmware_update_status}}</td>
            </tr>
          </tbody>

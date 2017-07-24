@@ -44,7 +44,7 @@ class CoogleIOTWebserver
 	public:
 		CoogleIOTWebserver(CoogleIOT& _iot);
 		CoogleIOTWebserver(CoogleIOT& _iot, int port);
-
+		~CoogleIOTWebserver();
 		CoogleIOTWebserver& setIOT(CoogleIOT& _iot);
 		CoogleIOTWebserver& setWebserver(ESP8266WebServer* server);
 		CoogleIOTWebserver& setServerPort(int port);
