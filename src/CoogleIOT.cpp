@@ -216,18 +216,22 @@ void CoogleIOT::loop()
 	webServer->loop();
 
 	yield();
-	dnsServer.processNextRequest();
+	if(dnsServerActive) {
+		dnsServer.processNextRequest();
+	}
 
-	now = time(nullptr);
+	if(ntpClientActive) {
+		now = time(nullptr);
 
-	if(now) {
-		p_tm = localtime(&now);
+		if(now) {
+			p_tm = localtime(&now);
 
-		if( (p_tm->tm_hour == 12) &&
-			(p_tm->tm_min == 0) &&
-			(p_tm->tm_sec == 6)) {
-			yield();
-			syncNTPTime(COOGLEIOT_TIMEZONE_OFFSET, COOGLEIOT_DAYLIGHT_OFFSET);
+			if( (p_tm->tm_hour == 12) &&
+				(p_tm->tm_min == 0) &&
+				(p_tm->tm_sec == 6)) {
+				yield();
+				syncNTPTime(COOGLEIOT_TIMEZONE_OFFSET, COOGLEIOT_DAYLIGHT_OFFSET);
+			}
 		}
 	}
 
