@@ -126,6 +126,10 @@
     <script>
       $(document).ready(function() {
         
+        $('#reloadBtn').on('click', function(e) {
+          location.href = '/restart';
+        });
+        
         $('#saveBtn').on('click', function(e) {
           e.preventDefault();
           

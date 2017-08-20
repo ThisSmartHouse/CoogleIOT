@@ -3,7 +3,7 @@
 
 //#define COOGLEIOT_DEBUG
 
-#define COOGLEIOT_VERSION "1.0.0"
+#define COOGLEIOT_VERSION "1.0.1"
 
 #ifndef COOGLEIOT_SPIFFS_LOGFILE
 #define COOGLEIOT_SPIFFS_LOGFILE "/coogleiot-log.txt"

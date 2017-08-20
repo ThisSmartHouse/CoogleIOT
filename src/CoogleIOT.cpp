@@ -377,6 +377,7 @@ CoogleIOT& CoogleIOT::flashStatus(int speed, int repeat)
 bool CoogleIOT::initialize()
 {
 	String firmwareUrl;
+	String localAPName;
 	
 	if(_statusPin > -1) {
 		pinMode(_statusPin, OUTPUT);
@@ -414,6 +415,12 @@ bool CoogleIOT::initialize()
 	WiFi.setAutoConnect(false);
 	WiFi.setAutoReconnect(true);
 	WiFi.mode(WIFI_AP_STA);
+
+	localAPName = getAPName();
+
+	if(localAPName.length() > 0) {
+		WiFi.hostname(localAPName.c_str());
+	}
 
 	if(!connectToSSID()) {
 		error("Failed to connect to remote AP");
@@ -531,7 +538,7 @@ void CoogleIOT::initializeLocalAP()
 
 		setAPName(localAPName);
 	}
-	
+
 	info("Intiailzing Access Point");
 
 	WiFi.softAPConfig(apLocalIP, apGateway, apSubnetMask);
@@ -967,6 +974,7 @@ bool CoogleIOT::connectToSSID()
 {
 	String remoteAPName;
 	String remoteAPPassword;
+	String localAPName;
 
 	flashStatus(COOGLEIOT_STATUS_WIFI_INIT);
 	
