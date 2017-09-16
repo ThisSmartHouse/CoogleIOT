@@ -61,6 +61,8 @@ CoogleIOT::~CoogleIOT()
 	if(_firmwareClientActive) {
 		os_timer_disarm(&firmwareUpdateTimer);
 	}
+
+	os_timer_disarm(&heartbeatTimer);
 }
 
 String CoogleIOT::buildLogMsg(String msg, CoogleIOT_LogSeverity severity)
@@ -73,7 +75,7 @@ String CoogleIOT::buildLogMsg(String msg, CoogleIOT_LogSeverity severity)
 		p_tm = localtime(&now);
 
 		timestamp = timestamp +
-				    p_tm->tm_year + "-" +
+				    (p_tm->tm_year + 1900) + "-" +
 				    p_tm->tm_mon + "-" +
 					p_tm->tm_mday + " " +
 					p_tm->tm_hour + ":" +
@@ -317,7 +319,6 @@ bool CoogleIOT::apStatus()
 
 String CoogleIOT::getWiFiStatus()
 {
-
 	String retval;
 
     switch(WiFi.status()) {
