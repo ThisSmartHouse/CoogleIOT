@@ -30,6 +30,11 @@ extern "C" void __coogle_iot_firmware_timer_callback(void *pArg)
 	__coogle_iot_self->firmwareUpdateTick = true;
 }
 
+extern "C" void __coogle_iot_heartbeat_timer_callback(void *pArg)
+{
+	__coogle_iot_self->heartbeatTick = true;
+}
+
 CoogleIOT::CoogleIOT(int statusPin)
 {
     _statusPin = statusPin;
@@ -200,6 +205,11 @@ void CoogleIOT::loop()
 {
 	struct tm* p_tm;
 
+	if(WiFi.status() != WL_CONNECTED) {
+		warn("Not connected to WiFi. Attempting reconnection.");
+		connectToSSID();
+	}
+
 	if(mqttClientActive) {
 		if(!mqttClient->connected()) {
 			yield();
@@ -257,6 +267,13 @@ void CoogleIOT::loop()
 			}
 		}
 	}
+
+	if(heartbeatTick) {
+		heartbeatTick = false;
+		flashStatus(100, 1);
+		debug("Heartbeat Tick");
+	}
+
 }
 
 CoogleIOT& CoogleIOT::flashSOS()
@@ -449,6 +466,9 @@ bool CoogleIOT::initialize()
 
 		_firmwareClientActive = true;
 	}
+
+	os_timer_setfn(&heartbeatTimer, __coogle_iot_heartbeat_timer_callback, NULL);
+	os_timer_arm(&heartbeatTimer, COOGLEIOT_HEARTBEAT_MS, true);
 
 	return true;
 }

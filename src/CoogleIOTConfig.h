@@ -63,6 +63,9 @@
 #define COOGLEIOT_NTP_SERVER_3 "time.google.com"
 #endif
 
+#ifndef COOGLEIOT_HEARTBEAT_MS
+#define COOGLEIOT_HEARTBEAT_MS 30000
+#endif
 
 #ifndef COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS
 #define COOGLEIOT_FIRMWARE_UPDATE_CHECK_MS 54000000  // 15 Minutes in Milliseconds

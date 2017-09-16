@@ -62,6 +62,7 @@ class CoogleIOT
 {
     public:
 		bool firmwareUpdateTick = false;
+		bool heartbeatTick = false;
 		bool _restarting = false;
 
         CoogleIOT(int);
@@ -139,6 +140,7 @@ class CoogleIOT
         File logFile;
 
         os_timer_t firmwareUpdateTimer;
+        os_timer_t heartbeatTimer;
         
         bool mqttClientActive = false;
         bool dnsServerActive = false;
