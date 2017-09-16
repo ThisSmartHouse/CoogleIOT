@@ -76,11 +76,11 @@ String CoogleIOT::buildLogMsg(String msg, CoogleIOT_LogSeverity severity)
 
 		timestamp = timestamp +
 				    (p_tm->tm_year + 1900) + "-" +
-				    p_tm->tm_mon + "-" +
-					p_tm->tm_mday + " " +
-					p_tm->tm_hour + ":" +
-					p_tm->tm_min + ":" +
-					p_tm->tm_sec;
+				    (p_tm->tm_mon < 10 ? "0" : "") + p_tm->tm_mon + "-" +
+					(p_tm->tm_mday < 10 ? "0" : "") + p_tm->tm_mday + " " +
+					(p_tm->tm_hour < 10 ? "0" : "") + p_tm->tm_hour + ":" +
+					(p_tm->tm_min < 10 ? "0" : "") + p_tm->tm_min + ":" +
+					(p_tm->tm_sec < 10 ? "0" : "") + p_tm->tm_sec;
 	} else {
 		timestamp = F("UKWN");
 	}
