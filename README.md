@@ -14,6 +14,7 @@ solid encapsulated framework for most of the common things you want to do on an 
 - Built in DNS Server during configuration for captive portal support when connected to the device as an AP directly
 - Built in Security-minded tools like HTML Escaping and other filters to provide malicious inputs
 - Built in OTA firmware update support. Can both upload a new firmware from the UI or pull a new one down from a server
+- Built in Timer allows you to create very clean timings for measurements, et.c (i.e. read sensor every x minutes)
 
 ## Screenshots
 
@@ -282,6 +283,10 @@ Returns true/false if the periodic firmware client (that will download a new fir
 
 `bool CoogleIOT::apStatus()`
 Returns true/false if the AP of the device is active or not.
+
+`CoogleIOT& CoogleIOT::registerTimer(int interval, callback)`
+Create a callback timer that will call `callback` (void function with no params) every `interval` milliseconds. You can turn off the timer
+by passing 0 as the interval. Useful for taking a sensor reading every X seconds, etc.
 
 `void CoogleIOT::checkForFirmwareUpdate()`
 Performs a check against the specified Firmware Server endpoint for a new version of this device's firmware. If a new version exists it performs the upgrade.
