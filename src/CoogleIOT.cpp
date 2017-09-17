@@ -35,6 +35,11 @@ extern "C" void __coogle_iot_heartbeat_timer_callback(void *pArg)
 	__coogle_iot_self->heartbeatTick = true;
 }
 
+extern "C" void __coogle_iot_sketch_timer_callback(void *pArg)
+{
+	__coogle_iot_self->sketchTimerTick = true;
+}
+
 CoogleIOT::CoogleIOT(int statusPin)
 {
     _statusPin = statusPin;
@@ -62,7 +67,33 @@ CoogleIOT::~CoogleIOT()
 		os_timer_disarm(&firmwareUpdateTimer);
 	}
 
+	if(sketchTimerInterval > 0) {
+		os_timer_disarm(&sketchTimer);
+	}
+
 	os_timer_disarm(&heartbeatTimer);
+}
+
+CoogleIOT& CoogleIOT::registerTimer(int interval, sketchtimer_cb_t callback)
+{
+	if(interval <= 0) {
+		if(sketchTimerInterval > 0) {
+			os_timer_disarm(&sketchTimer);
+		}
+
+		sketchTimerCallback = NULL;
+		sketchTimerInterval = 0;
+
+		return *this;
+	}
+
+	sketchTimerCallback = callback;
+	sketchTimerInterval = interval;
+
+	os_timer_setfn(&sketchTimer, __coogle_iot_sketch_timer_callback, NULL);
+	os_timer_arm(&sketchTimer, sketchTimerInterval, true);
+
+	return *this;
 }
 
 String CoogleIOT::buildLogMsg(String msg, CoogleIOT_LogSeverity severity)
@@ -206,6 +237,11 @@ bool CoogleIOT::serialEnabled()
 void CoogleIOT::loop()
 {
 	struct tm* p_tm;
+
+	if(sketchTimerTick) {
+		sketchTimerTick = false;
+		sketchTimerCallback();
+	}
 
 	if(heartbeatTick) {
 		heartbeatTick = false;

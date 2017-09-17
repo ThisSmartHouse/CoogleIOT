@@ -54,7 +54,11 @@ typedef enum {
 	CRITICAL
 } CoogleIOT_LogSeverity;
 
+typedef void (*sketchtimer_cb_t)();
+
 extern "C" void __coogle_iot_firmware_timer_callback(void *);
+extern "C" void __coogle_iot_heartbeat_timer_callback(void *);
+extern "C" void __coogle_iot_sketch_timer_callback(void *);
 
 class CoogleIOTWebserver;
 
@@ -63,6 +67,7 @@ class CoogleIOT
     public:
 		bool firmwareUpdateTick = false;
 		bool heartbeatTick = false;
+		bool sketchTimerTick = false;
 		bool _restarting = false;
 
         CoogleIOT(int);
@@ -115,6 +120,9 @@ class CoogleIOT
         CoogleIOT& logPrintf(CoogleIOT_LogSeverity, const char *format, ...);
         CoogleIOT& debug(String);
         CoogleIOT& info(String);
+
+        CoogleIOT& registerTimer(int, sketchtimer_cb_t);
+
         String buildLogMsg(String, CoogleIOT_LogSeverity);
 
         bool mqttActive();
@@ -129,6 +137,7 @@ class CoogleIOT
 
         bool _serial;
         int _statusPin;
+
         HTTPUpdateResult firmwareUpdateStatus;
         time_t now;
 
@@ -141,7 +150,11 @@ class CoogleIOT
 
         os_timer_t firmwareUpdateTimer;
         os_timer_t heartbeatTimer;
-        
+        os_timer_t sketchTimer;
+
+        int sketchTimerInterval = 0;
+        sketchtimer_cb_t sketchTimerCallback;
+
         int wifiFailuresCount;
 
         bool mqttClientActive = false;
