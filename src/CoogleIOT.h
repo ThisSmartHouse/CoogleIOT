@@ -142,6 +142,8 @@ class CoogleIOT
         os_timer_t firmwareUpdateTimer;
         os_timer_t heartbeatTimer;
         
+        int wifiFailuresCount;
+
         bool mqttClientActive = false;
         bool dnsServerActive = false;
         bool ntpClientActive = false;

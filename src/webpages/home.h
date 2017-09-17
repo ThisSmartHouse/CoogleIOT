@@ -154,6 +154,14 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
     <script>
       $(document).ready(function() {
         
+        $('#resetEEPROMBtn').on('click', function(e) {
+           window.location.href = '/reset';
+        });
+
+        $('#reloadBtn').on('click', function(e) {
+           window.location.href = '/restart';
+        });
+
         $('#saveBtn').on('click', function(e) {
           e.preventDefault();
           

@@ -207,10 +207,29 @@ void CoogleIOT::loop()
 {
 	struct tm* p_tm;
 
-	if(WiFi.status() != WL_CONNECTED) {
-		warn("Not connected to WiFi. Attempting reconnection.");
-		connectToSSID();
+	if(heartbeatTick) {
+		heartbeatTick = false;
+		flashStatus(100, 1);
+		debug("Heartbeat Tick");
+
+		if(wifiFailuresCount > COOGLEIOT_MAX_WIFI_ATTEMPTS) {
+			info("Failed too many times to establish a WiFi connection. Restarting Device.");
+			restartDevice();
+			return;
+		}
 	}
+
+	if(WiFi.status() != WL_CONNECTED) {
+		info("Not connected to WiFi. Attempting reconnection.");
+		if(!connectToSSID()) {
+			wifiFailuresCount++;
+			logPrintf(INFO, "Attempt %d failed. Will attempt %d times before restarting.", wifiFailuresCount, COOGLEIOT_MAX_WIFI_ATTEMPTS);
+			return;
+		}
+
+	}
+
+	wifiFailuresCount = 0;
 
 	if(mqttClientActive) {
 		if(!mqttClient->connected()) {
@@ -268,12 +287,6 @@ void CoogleIOT::loop()
 					break;
 			}
 		}
-	}
-
-	if(heartbeatTick) {
-		heartbeatTick = false;
-		flashStatus(100, 1);
-		debug("Heartbeat Tick");
 	}
 
 }
@@ -442,6 +455,10 @@ bool CoogleIOT::initialize()
 
 	if(!connectToSSID()) {
 		error("Failed to connect to remote AP");
+
+		restartDevice();
+		return false;
+
 	} else {
 	
 		syncNTPTime(COOGLEIOT_TIMEZONE_OFFSET, COOGLEIOT_DAYLIGHT_OFFSET);
@@ -492,23 +509,17 @@ bool CoogleIOT::verifyFlashConfiguration()
 	uint32_t ideSize = ESP.getFlashChipSize();
 	FlashMode_t ideMode = ESP.getFlashChipMode();
 
-	if(_serial) {
-		Serial.println("Introspecting on-board Flash Memory:");
-		Serial.printf("Flash ID: %08X\n", ESP.getFlashChipId());
-		Serial.printf("Flash real size: %u\n", realSize);
-		Serial.printf("Flash IDE Size: %u\n", ideSize);
-		Serial.printf("Flash IDE Speed: %u\n", ESP.getFlashChipSpeed());
-		Serial.printf("Flash IDE Mode: %u\n", (ideMode == FM_QIO ? "QIO" : ideMode == FM_QOUT ? "QOUT" : ideMode == FM_DIO ? "DIO" : ideMode == FM_DOUT ? "DOUT" : "UNKNOWN"));
-	}
+	debug("Introspecting on-board Flash Memory:");
+	logPrintf(DEBUG, "Flash ID: %08X", ESP.getFlashChipId());
+	logPrintf(DEBUG, "Flash real size: %u", realSize);
+	logPrintf(DEBUG, "Flash IDE Size: %u", ideSize);
+	logPrintf(DEBUG, "Flash IDE Speed: %u", ESP.getFlashChipSpeed());
+	logPrintf(DEBUG, "Flash IDE Mode: %u", (ideMode == FM_QIO ? "QIO" : ideMode == FM_QOUT ? "QOUT" : ideMode == FM_DIO ? "DIO" : ideMode == FM_DOUT ? "DOUT" : "UNKNOWN"));
 
 	if(ideSize != realSize) {
-		if(_serial) {
-			Serial.println("\n\n****** WARNING: Flashed Size is not equal to size available on chip! ******\n\n");
-		}
+		warn("Flashed size is not equal to size available on chip!");
 	} else {
-		if(_serial) {
-			Serial.println("Flash Chip Configuration Verified: OK");
-		}
+		debug("Flash Chip Configuration Verified: OK");
 	}
 
 }
@@ -1025,7 +1036,7 @@ bool CoogleIOT::connectToSSID()
 	}
 	
 	if(WiFi.status() != WL_CONNECTED) {
-		error("Could not connec to Access Point!");
+		error("Could not connect to Access Point!");
 		flashSOS();
 		
 		return false;
