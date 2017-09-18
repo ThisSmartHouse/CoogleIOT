@@ -124,6 +124,9 @@ class CoogleIOT
         CoogleIOT& registerTimer(int, sketchtimer_cb_t);
 
         String buildLogMsg(String, CoogleIOT_LogSeverity);
+        String getLogs(bool);
+        String getLogs();
+        File& getLogFile();
 
         bool mqttActive();
         bool dnsActive();

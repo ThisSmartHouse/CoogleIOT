@@ -120,11 +120,33 @@
          </tbody>
         </table>
       </div>
+      <input type="radio" name="navtabs" id="tab5" aria-hidden="true">
+      <label for="tab5" aria-hidden="true">Logs</label>
+      <div style="height: 600px">
+        <div style="text-align: right;"><button class="primary" type="button" id="refreshLogBtn">Refresh Log</button></div>
+        <hr/>
+        <div id="logContent"></div>
+      </div>
     </div>
     <button class="primary bordered" style="width: 100%" id="saveBtn">Save and Restart</button>
     <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
     <script>
       $(document).ready(function() {
+        
+        var loadLog = function()
+        {
+           $.get('/logs', function(result) {
+              
+              result = result.trim();
+              
+              result = (result.length > 0 ? '<p>' + result.replace(/[\r\n]+/,'</p><p>') + '</p>' : '');
+           
+              $('#logContent').html(result);
+           });
+        };
+        
+        $('#tab5').on('click', loadLog);
+        $('#refreshLogBtn').on('click', loadLog);
         
         $('#reloadBtn').on('click', function(e) {
           location.href = '/restart';

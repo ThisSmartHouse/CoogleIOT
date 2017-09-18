@@ -64,6 +64,7 @@ CoogleIOTWebserver& CoogleIOTWebserver::initializePages()
 	webServer->on("/reset", std::bind(&CoogleIOTWebserver::handleReset, this));
 	webServer->on("/restart", std::bind(&CoogleIOTWebserver::handleRestart, this));
 	webServer->on("/jquery", std::bind(&CoogleIOTWebserver::handleJS, this));
+	webServer->on("/logs", std::bind(&CoogleIOTWebserver::handleLogs, this));
 
 	webServer->on("/api/status", std::bind(&CoogleIOTWebserver::handleApiStatus, this));
 	webServer->on("/api/reset", std::bind(&CoogleIOTWebserver::handleApiReset, this));
@@ -165,7 +166,8 @@ void CoogleIOTWebserver::handleRoot()
 	String page(FPSTR(WEBPAGE_Home));
 	String ap_name, ap_password, ap_remote_name, ap_remote_password,
 	       mqtt_host, mqtt_username, mqtt_password, mqtt_client_id,
-		   firmware_url, mqtt_port, local_ip, mac_address, wifi_status;
+		   firmware_url, mqtt_port, local_ip, mac_address, wifi_status,
+		   logs;
 
 	ap_name = iot->getAPName();
 	ap_password = iot->getAPPassword();
@@ -219,6 +221,17 @@ void CoogleIOTWebserver::handleCSS()
 void CoogleIOTWebserver::handle404()
 {
 	webServer->send_P(404, "text/html", WEBPAGE_NOTFOUND);
+}
+
+void CoogleIOTWebserver::handleLogs()
+{
+	File logFile;
+
+	logFile = iot->getLogFile();
+
+	logFile.seek(0, SeekSet);
+	webServer->streamFile(logFile, "text/html");
+	logFile.seek(0, SeekEnd);
 }
 
 void CoogleIOTWebserver::handleFirmwareUploadResponse()

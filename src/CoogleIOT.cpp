@@ -196,10 +196,38 @@ CoogleIOT& CoogleIOT::critical(String msg)
 	return log(msg, CRITICAL);
 }
 
+File& CoogleIOT::getLogFile()
+{
+	return logFile;
+}
+
+String CoogleIOT::getLogs()
+{
+	return CoogleIOT::getLogs(false);
+}
+
+String CoogleIOT::getLogs(bool asHTML)
+{
+	String retval;
+
+	if(!logFile || !logFile.size()) {
+		return retval;
+	}
+
+	logFile.seek(0, SeekSet);
+
+	while(logFile.available()) {
+		retval += (char)logFile.read();
+	}
+
+	logFile.seek(0, SeekEnd);
+
+	return retval;
+}
+
 CoogleIOT& CoogleIOT::log(String msg, CoogleIOT_LogSeverity severity)
 {
 	String logMsg = buildLogMsg(msg, severity);
-	FSInfo logFileInfo;
 
 	if(_serial) {
 		Serial.println(logMsg);
@@ -209,12 +237,11 @@ CoogleIOT& CoogleIOT::log(String msg, CoogleIOT_LogSeverity severity)
 		return *this;
 	}
 
-	SPIFFS.info(logFileInfo);
+	if((logFile.size() + msg.length()) > COOGLEIOT_LOGFILE_MAXSIZE) {
 
-	if((logFileInfo.totalBytes + msg.length()) > COOGLEIOT_LOGFILE_MAXSIZE) {
 		logFile.close();
 		SPIFFS.remove(COOGLEIOT_SPIFFS_LOGFILE);
-		logFile = SPIFFS.open(COOGLEIOT_SPIFFS_LOGFILE, "w");
+		logFile = SPIFFS.open(COOGLEIOT_SPIFFS_LOGFILE, "a+");
 
 		if(!logFile) {
 			if(_serial) {
@@ -237,6 +264,7 @@ bool CoogleIOT::serialEnabled()
 void CoogleIOT::loop()
 {
 	struct tm* p_tm;
+	String remoteAPName;
 
 	if(sketchTimerTick) {
 		sketchTimerTick = false;
@@ -246,7 +274,6 @@ void CoogleIOT::loop()
 	if(heartbeatTick) {
 		heartbeatTick = false;
 		flashStatus(100, 1);
-		debug("Heartbeat Tick");
 
 		if(wifiFailuresCount > COOGLEIOT_MAX_WIFI_ATTEMPTS) {
 			info("Failed too many times to establish a WiFi connection. Restarting Device.");
@@ -256,18 +283,22 @@ void CoogleIOT::loop()
 	}
 
 	if(WiFi.status() != WL_CONNECTED) {
-		info("Not connected to WiFi. Attempting reconnection.");
-		if(!connectToSSID()) {
-			wifiFailuresCount++;
-			logPrintf(INFO, "Attempt %d failed. Will attempt %d times before restarting.", wifiFailuresCount, COOGLEIOT_MAX_WIFI_ATTEMPTS);
-			return;
+
+		remoteAPName = getRemoteAPName();
+
+		if(remoteAPName.length() > 0) {
+			info("Not connected to WiFi. Attempting reconnection.");
+			if(!connectToSSID()) {
+				wifiFailuresCount++;
+				logPrintf(INFO, "Attempt %d failed. Will attempt %d times before restarting.", wifiFailuresCount, COOGLEIOT_MAX_WIFI_ATTEMPTS);
+				return;
+			}
 		}
 
-	}
+	} else {
 
-	wifiFailuresCount = 0;
+		wifiFailuresCount = 0;
 
-	if(mqttClientActive) {
 		if(!mqttClient->connected()) {
 			yield();
 			if(!connectToMQTT()) {
@@ -275,8 +306,48 @@ void CoogleIOT::loop()
 			}
 		}
 
-		yield();
-		mqttClient->loop();
+		if(mqttClientActive) {
+			yield();
+			mqttClient->loop();
+		}
+
+		if(ntpClientActive) {
+			now = time(nullptr);
+
+			if(now) {
+				p_tm = localtime(&now);
+
+				if( (p_tm->tm_hour == 12) &&
+					(p_tm->tm_min == 0) &&
+					(p_tm->tm_sec == 6)) {
+					yield();
+					syncNTPTime(COOGLEIOT_TIMEZONE_OFFSET, COOGLEIOT_DAYLIGHT_OFFSET);
+				}
+			}
+		}
+
+		if(firmwareUpdateTick) {
+			firmwareUpdateTick = false;
+
+			checkForFirmwareUpdate();
+
+			if(_serial) {
+				switch(firmwareUpdateStatus) {
+					case HTTP_UPDATE_FAILED:
+						warn("Warning! Failed to update firmware with specified URL");
+						break;
+					case HTTP_UPDATE_NO_UPDATES:
+						info("Firmware update check completed - at current version");
+						break;
+					case HTTP_UPDATE_OK:
+						info("Firmware Updated!");
+						break;
+					default:
+						warn("Warning! No updated performed. Perhaps an invalid URL?");
+						break;
+				}
+			}
+		}
 	}
 	
 	yield();
@@ -285,44 +356,6 @@ void CoogleIOT::loop()
 	yield();
 	if(dnsServerActive) {
 		dnsServer.processNextRequest();
-	}
-
-	if(ntpClientActive) {
-		now = time(nullptr);
-
-		if(now) {
-			p_tm = localtime(&now);
-
-			if( (p_tm->tm_hour == 12) &&
-				(p_tm->tm_min == 0) &&
-				(p_tm->tm_sec == 6)) {
-				yield();
-				syncNTPTime(COOGLEIOT_TIMEZONE_OFFSET, COOGLEIOT_DAYLIGHT_OFFSET);
-			}
-		}
-	}
-
-	if(firmwareUpdateTick) {
-		firmwareUpdateTick = false;
-
-		checkForFirmwareUpdate();
-
-		if(_serial) {
-			switch(firmwareUpdateStatus) {
-				case HTTP_UPDATE_FAILED:
-					warn("Warning! Failed to update firmware with specified URL");
-					break;
-				case HTTP_UPDATE_NO_UPDATES:
-					info("Firmware update check completed - at current version");
-					break;
-				case HTTP_UPDATE_OK:
-					info("Firmware Updated!");
-					break;
-				default:
-					warn("Warning! No updated performed. Perhaps an invalid URL?");
-					break;
-			}
-		}
 	}
 
 }
@@ -450,9 +483,9 @@ bool CoogleIOT::initialize()
 		pinMode(_statusPin, OUTPUT);
 		flashStatus(COOGLEIOT_STATUS_INIT);
 	}
-	
+
 	info("Coogle IOT v" COOGLEIOT_VERSION " initializing..");
-	
+
 	verifyFlashConfiguration();
 
 	randomSeed(micros());
@@ -470,7 +503,7 @@ bool CoogleIOT::initialize()
 		SPIFFS.format();
 	}
 	
-	logFile = SPIFFS.open(COOGLEIOT_SPIFFS_LOGFILE, "w");
+	logFile = SPIFFS.open(COOGLEIOT_SPIFFS_LOGFILE, "a+");
 
 	if(!logFile) {
 		error("Could not open SPIFFS log file!");
@@ -491,10 +524,6 @@ bool CoogleIOT::initialize()
 
 	if(!connectToSSID()) {
 		error("Failed to connect to remote AP");
-
-		restartDevice();
-		return false;
-
 	} else {
 	
 		syncNTPTime(COOGLEIOT_TIMEZONE_OFFSET, COOGLEIOT_DAYLIGHT_OFFSET);
@@ -1097,7 +1126,7 @@ CoogleIOT& CoogleIOT::enableSerial(int baud)
       Serial.begin(baud);
   
       while(!Serial) {
-          /* .... tic toc .... */
+          yield();
       }
 
     }

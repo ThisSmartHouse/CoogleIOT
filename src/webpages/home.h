@@ -148,12 +148,30 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
          </tbody>
         </table>
       </div>
+      <input type="radio" name="navtabs" id="tab5" aria-hidden="true">
+      <label for="tab5" aria-hidden="true">Logs</label>
+      <div style="height: 600px;">
+        <div style="text-align: right;"><button class="primary" type="button" id="refreshLogBtn">Refresh Log</button></div>
+        <hr/>
+        <pre id="logContent" style="overflow-y: scroll; max-height: 470px; height: 470px;"></pre>
+      </div>
     </div>
     <button class="primary bordered" style="width: 100%" id="saveBtn">Save and Restart</button>
 	<script src="/jquery"></script>
     <script>
       $(document).ready(function() {
         
+        var loadLog = function()
+        {
+           $.get('/logs', function(result) {
+              $('#logContent').html(result);
+              $('#logContent').scrollTop($('#logContent')[0].scrollHeight);
+           });
+        };
+        
+        $('#tab5').on('click', loadLog);
+        $('#refreshLogBtn').on('click', loadLog);
+
         $('#resetEEPROMBtn').on('click', function(e) {
            window.location.href = '/reset';
         });

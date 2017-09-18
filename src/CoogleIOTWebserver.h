@@ -62,6 +62,7 @@ class CoogleIOTWebserver
 		void handleRestart();
 		void handleFirmwareUpload();
 		void handleFirmwareUploadResponse();
+		void handleLogs();
 
 		void handleApiStatus();
 		void handleApiReset();
