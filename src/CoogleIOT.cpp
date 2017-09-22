@@ -96,9 +96,8 @@ CoogleIOT& CoogleIOT::registerTimer(int interval, sketchtimer_cb_t callback)
 	return *this;
 }
 
-String CoogleIOT::buildLogMsg(String msg, CoogleIOT_LogSeverity severity)
+String CoogleIOT::getTimestampAsString()
 {
-	String retval;
 	String timestamp;
 	struct tm* p_tm;
 
@@ -115,6 +114,16 @@ String CoogleIOT::buildLogMsg(String msg, CoogleIOT_LogSeverity severity)
 	} else {
 		timestamp = F("UKWN");
 	}
+
+	return timestamp;
+}
+
+String CoogleIOT::buildLogMsg(String msg, CoogleIOT_LogSeverity severity)
+{
+	String retval;
+	String timestamp;
+
+	timestamp = getTimestampAsString();
 
 	switch(severity) {
 		case DEBUG:
@@ -265,6 +274,11 @@ void CoogleIOT::loop()
 {
 	struct tm* p_tm;
 	String remoteAPName;
+	String mqttClientId;
+
+	char topic[150];
+	char json[150];
+
 
 	if(sketchTimerTick) {
 		sketchTimerTick = false;
@@ -275,11 +289,35 @@ void CoogleIOT::loop()
 		heartbeatTick = false;
 		flashStatus(100, 1);
 
-		if(wifiFailuresCount > COOGLEIOT_MAX_WIFI_ATTEMPTS) {
+		if((wifiFailuresCount > COOGLEIOT_MAX_WIFI_ATTEMPTS) && (WiFi.status() != WL_CONNECTED)) {
 			info("Failed too many times to establish a WiFi connection. Restarting Device.");
 			restartDevice();
 			return;
 		}
+
+		if((mqttFailuresCount > COOGLEIOT_MAX_MQTT_ATTEMPTS) && !mqttClient->connected()) {
+			info("Failed too many times to establish a MQTT connection. Restarting Device.");
+			restartDevice();
+			return;
+		}
+
+		if(mqttClientActive) {
+
+			mqttClientId = getMQTTClientId();
+
+			snprintf(json, 150, "{ \"timestamp\" : \"%s\", \"ip\" : \"%s\", \"coogleiot_version\" : \"%s\", \"client_id\" : \"%s\" }",
+					getTimestampAsString().c_str(),
+					WiFi.localIP().toString().c_str(),
+					COOGLEIOT_VERSION,
+					mqttClientId.c_str());
+
+			snprintf(topic, 150, COOGLEIOT_DEVICE_TOPIC "/%s", mqttClientId.c_str());
+
+			if(!mqttClient->publish(topic, json, true)) {
+				error("Failed to publish to heartbeat topic!");
+			}
+		}
+
 	}
 
 	if(WiFi.status() != WL_CONNECTED) {
@@ -302,11 +340,12 @@ void CoogleIOT::loop()
 		if(!mqttClient->connected()) {
 			yield();
 			if(!connectToMQTT()) {
-				flashSOS();
+				mqttFailuresCount++;
 			}
 		}
 
 		if(mqttClientActive) {
+			mqttFailuresCount = 0;
 			yield();
 			mqttClient->loop();
 		}
@@ -972,25 +1011,15 @@ bool CoogleIOT::connectToMQTT()
 	}
 
 	info("Attempting to Connect to MQTT Server");
-	
-	for(int i = 0; (i < 5) && (!mqttClient->connected()); i++) {
-		
-		if(mqttUsername.length() == 0) {
-			connectResult = mqttClient->connect(mqttClientId.c_str());
-		} else {
-			connectResult = mqttClient->connect(mqttClientId.c_str(), mqttUsername.c_str(), mqttPassword.c_str());
-		}
-		
-		if(!connectResult) {
-			warn("Attempt to connect to MQTT Server Failed");
-			delay(5000);
-			mqttClientActive = false;
-		}
+
+	if(mqttUsername.length() == 0) {
+		connectResult = mqttClient->connect(mqttClientId.c_str());
+	} else {
+		connectResult = mqttClient->connect(mqttClientId.c_str(), mqttUsername.c_str(), mqttPassword.c_str());
 	}
-	
+
 	if(!mqttClient->connected()) {
 		error("Failed to connect to MQTT Server!");
-		flashSOS();
 		mqttClientActive = false;
 		return false;
 	}

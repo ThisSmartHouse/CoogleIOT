@@ -98,6 +98,7 @@ class CoogleIOT
         int getMQTTPort();
         String getFirmwareUpdateUrl();
         String getWiFiStatus();
+        String getTimestampAsString();
 
         bool verifyFlashConfiguration();
 
@@ -159,6 +160,7 @@ class CoogleIOT
         sketchtimer_cb_t sketchTimerCallback;
 
         int wifiFailuresCount;
+        int mqttFailuresCount;
 
         bool mqttClientActive = false;
         bool dnsServerActive = false;

@@ -3,7 +3,7 @@
 
 //#define COOGLEIOT_DEBUG
 
-#define COOGLEIOT_VERSION "1.2.0"
+#define COOGLEIOT_VERSION "1.2.1"
 
 #ifndef COOGLEIOT_SPIFFS_LOGFILE
 #define COOGLEIOT_SPIFFS_LOGFILE "/coogleiot-log.txt"
@@ -85,6 +85,14 @@
 
 #ifndef COOGLEIOT_MAX_WIFI_ATTEMPTS
 #define COOGLEIOT_MAX_WIFI_ATTEMPTS 10
+#endif
+
+#ifndef COOGLEIOT_MAX_MQTT_ATTEMPTS
+#define COOGLEIOT_MAX_MQTT_ATTEMPTS 10
+#endif
+
+#ifndef COOGLEIOT_DEVICE_TOPIC
+#define COOGLEIOT_DEVICE_TOPIC "/coogleiot/devices"
 #endif
 
 #ifdef COOGLEIOT_DEBUG
