@@ -1145,7 +1145,7 @@ bool CoogleIOT::connectToSSID()
 
 CoogleIOT& CoogleIOT::enableSerial()
 {
-	return enableSerial(15200);
+	return enableSerial(115200);
 }
 
 CoogleIOT& CoogleIOT::enableSerial(int baud)
