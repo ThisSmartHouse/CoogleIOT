@@ -26,7 +26,7 @@
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 #include "ArduinoJson.h"
-#include "WifiClientPrint.h"
+#include "WiFiClientPrint.h"
 #include "CoogleIOT.h"
 #include "DNSServer/DNSServer.h"
 #include "CoogleIOTConfig.h"
