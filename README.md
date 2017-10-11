@@ -6,6 +6,7 @@ The CoogleIOT library was created to make building IOT devices on the ESP8266-12
 solid encapsulated framework for most of the common things you want to do on an IOT device, including:
 
 - Captive Portal for configuration of the device - allowing you to configure the AP name, the Wifi Client, and the built in MQTT Client. 
+- Built in persistent logging mechanisms using SPIFFS filesystem (also available for viewing from the web interface)
   Just connect to the AP and configure (mobile friendly).
 - Built in MQTT client (provided by PubSubClient) 
 - Built in UI libraries for the device (Mini.css for style, jquery 3.x for Javascript) that can be served from the AP
