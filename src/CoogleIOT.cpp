@@ -1153,7 +1153,39 @@ CoogleIOT& CoogleIOT::enableSerial(int baud)
     if(!Serial) {
 
       Serial.begin(baud);
-  
+
+      while(!Serial) {
+          yield();
+      }
+
+    }
+
+    _serial = true;
+    return *this;
+}
+
+CoogleIOT& CoogleIOT::enableSerial(int baud, SerialConfig config)
+{
+    if(!Serial) {
+
+      Serial.begin(baud, config);
+
+      while(!Serial) {
+          yield();
+      }
+
+    }
+
+    _serial = true;
+    return *this;
+}
+
+CoogleIOT& CoogleIOT::enableSerial(int baud, SerialConfig config, SerialMode mode)
+{
+    if(!Serial) {
+
+      Serial.begin(baud, config, mode);
+
       while(!Serial) {
           yield();
       }

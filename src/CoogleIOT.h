@@ -75,6 +75,8 @@ class CoogleIOT
         ~CoogleIOT();
         void loop();
         bool initialize();
+        CoogleIOT& enableSerial(int, SerialConfig, SerialMode);
+        CoogleIOT& enableSerial(int, SerialConfig);
         CoogleIOT& enableSerial(int);
         CoogleIOT& enableSerial();
         PubSubClient* getMQTTClient();
