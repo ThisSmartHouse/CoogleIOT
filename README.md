@@ -13,7 +13,7 @@ solid encapsulated framework for most of the common things you want to do on an 
   using the /css or /jquery URLs
 - Built in NTP client for access to local date / time on device
 - Built in DNS Server during configuration for captive portal support when connected to the device as an AP directly
-- Built in Security-minded tools like HTML Escaping and other filters to provide malicious inputs
+- Built in Security-minded tools like HTML Escaping and other filters to prevent malicious inputs
 - Built in OTA firmware update support. Can both upload a new firmware from the UI or pull a new one down from a server
 - Built in Timer allows you to create very clean timings for measurements, et.c (i.e. read sensor every x minutes)
 
