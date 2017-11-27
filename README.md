@@ -42,6 +42,38 @@ work on without having to worry about things like WiFi or MQTT clients. Here is 
 Garage Door w/open and close sensors
 
 ```
+/* GarageDoor-Opener.h */
+#ifndef GARAGEDOOR_OPENER_H
+#define GARAGEDOOR_OPENER_H
+
+#define SERIAL_BAUD 115200
+
+#define OPEN_SENSOR_PIN 2   // The pin that detects when the door is closed
+#define CLOSE_SENSOR_PIN 5   // The pin that detects when the door is open
+#define OPEN_SWTICH_PIN 14    // The pin that activates the open / close door action
+#define LIGHT_SWITCH_PIN 4  // The pin that turns the light on / off
+
+#define GARAGE_DOOR_STATUS_TOPIC "/status/garage-door"
+#define GARAGE_DOOR_ACTION_TOPIC_DOOR "/garage-door/door"
+#define GARAGE_DOOR_ACTION_TOPIC_LIGHT "/garage-door/light"
+#define GARAGE_DOOR_MQTT_CLIENT_ID "garage-door"
+
+#include <Arduino.h>
+
+typedef enum {
+    GD_OPEN,
+    GD_CLOSED,
+    GD_OPENING,
+    GD_CLOSING,
+    GD_UNKNOWN
+} GarageDoorState;
+
+#endif
+
+```
+
+
+```
 #include <CoogleIOT.h>
 #include "GarageDoor-Opener.h"
 
@@ -65,9 +97,7 @@ String getDoorStateAsString(GarageDoorState state)
 			return String("unknown");
 	}
 
-	if(iot->serialEnabled()) {
-		Serial.println("Warning: Garage Door State value unknown");
-	}
+	iot->warn("Garage Door State Value Unknown!");
 
 	return String("unknown");
 }
@@ -80,10 +110,10 @@ GarageDoorState getGarageDoorState()
 	isOpen = digitalRead(OPEN_SENSOR_PIN) == LOW;
 	isClosed = digitalRead(CLOSE_SENSOR_PIN) == LOW;
 
+
 	if(isOpen && isClosed) {
-		if(iot->serialEnabled()) {
-			Serial.println("ERROR: Can't be both open and closed at the same time! Sensor failure!");
-		}
+		iot->error("Can't be both open and closed at the same time! Sensor failure!");
+
 		retval = GD_UNKNOWN;
 		return retval;
 	}
@@ -115,44 +145,56 @@ GarageDoorState getGarageDoorState()
 	return retval;
 }
 
-void toggleActionPin(unsigned int delayMS, unsigned int repeat)
+void triggerDoor()
 {
-	for(int i = 0; i < repeat; i++) {
-		digitalWrite(OPEN_SWTICH_PIN, HIGH);
-		delay(delayMS);
-		digitalWrite(OPEN_SWTICH_PIN, LOW);
-		delay(delayMS);
-	}
+	iot->info("Triggering Garage Door Open");
+	digitalWrite(OPEN_SWTICH_PIN, LOW);
+	delay(200);
+	digitalWrite(OPEN_SWTICH_PIN, HIGH);
+}
+
+void triggerLight()
+{
+	iot->info("Triggering Garage Door Light");
+	digitalWrite(LIGHT_SWITCH_PIN, LOW);
+	delay(200);
+	digitalWrite(LIGHT_SWITCH_PIN, HIGH);
+
 }
 
 void setup()
 {
 	iot = new CoogleIOT(LED_BUILTIN);
 
-	iot->enableSerial(SERIAL_BAUD);
-	iot->initialize();
+	iot->enableSerial(SERIAL_BAUD)
+        .setMQTTClientId(GARAGE_DOOR_MQTT_CLIENT_ID)
+	    .initialize();
 
 	pinMode(OPEN_SWTICH_PIN, OUTPUT);
+	pinMode(LIGHT_SWITCH_PIN, OUTPUT);
 	pinMode(OPEN_SENSOR_PIN, INPUT_PULLUP);
 	pinMode(CLOSE_SENSOR_PIN, INPUT_PULLUP);
 
-	digitalWrite(OPEN_SWTICH_PIN, LOW);
+	digitalWrite(OPEN_SWTICH_PIN, HIGH);
+	digitalWrite(LIGHT_SWITCH_PIN, HIGH);
 
 	if(iot->mqttActive()) {
 		mqtt = iot->getMQTTClient();
 
 		mqtt->setCallback(mqttCallbackHandler);
-		mqtt->subscribe(GARAGE_DOOR_ACTION_TOPIC);
+
+		iot->logPrintf(INFO, "Subscribed to Door-Open Topic: %s", GARAGE_DOOR_ACTION_TOPIC_DOOR);
+		iot->logPrintf(INFO, "Subscribed to Light-Activate Topic: %s", GARAGE_DOOR_ACTION_TOPIC_LIGHT);
+
+		mqtt->subscribe(GARAGE_DOOR_ACTION_TOPIC_DOOR);
+		mqtt->subscribe(GARAGE_DOOR_ACTION_TOPIC_LIGHT);
+
 		mqtt->publish(GARAGE_DOOR_STATUS_TOPIC, getDoorStateAsString(_currentState).c_str(), true);
 
-		if(iot->serialEnabled()) {
-			Serial.println("Garage Door Opener Initialized");
-		}
+		iot->info("Garage Door Opener Initialized");
 
 	} else {
-		if(iot->serialEnabled()) {
-			Serial.println("ERROR: MQTT Not Initialized!");
-		}
+		iot->error("MQTT Not initialized, Garage Door Opener Inactive");
 	}
 }
 
@@ -178,40 +220,21 @@ void mqttCallbackHandler(char *topic, byte *payload, unsigned int length)
 	String action;
 	char *payloadStr;
 
-	// This is annoying, payload is not null-terminated as a string,
-	// and the String class doesn't let us initialize it with a defined-length
-	// so we need to create our own first.
+	if(strcmp(topic, GARAGE_DOOR_ACTION_TOPIC_DOOR) == 0) {
 
-	payloadStr = (char *)malloc(length + 1);
-	memcpy(payloadStr, payload, length);
-	payloadStr[length] = NULL;
-	action = String(payloadStr);
-	free(payloadStr);
+		iot->info("Handling Garage Door Action Request");
+		iot->flashStatus(200, 1);
+		triggerDoor();
 
-	if(action.toInt() > 0) {
+	} else if(strcmp(topic, GARAGE_DOOR_ACTION_TOPIC_LIGHT) == 0) {
 
-		if(iot->serialEnabled()) {
-			Serial.printf("Toggling at frequency of %d ms (5 iterations)\n", action.toInt());
-		}
+		iot->info("Handing Garage Door Light Request");
+		iot->flashStatus(200, 2);
+		triggerLight();
 
-		toggleActionPin(action.toInt(), 5);
-		return;
-	}
-
-	if(action.equals("open") || action.equals("close")) {
-
-		if(iot->serialEnabled()) {
-			Serial.println("Toggled at button-press frequency");
-		}
-
-		toggleActionPin(1000, 1);
-		return;
-	} else {
-		if(iot->serialEnabled()) {
-			Serial.printf("Unknown Command issued: %s\n", action.c_str());
-		}
 	}
 }
+
 ```
 
 ## API
