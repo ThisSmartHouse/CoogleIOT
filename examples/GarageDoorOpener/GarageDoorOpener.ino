@@ -21,9 +21,7 @@ String getDoorStateAsString(GarageDoorState state)
 			return String("unknown");
 	}
 
-	if(iot->serialEnabled()) {
-		Serial.println("Warning: Garage Door State value unknown");
-	}
+	iot->warn("Garage Door State Value Unknown!");
 
 	return String("unknown");
 }
@@ -36,10 +34,10 @@ GarageDoorState getGarageDoorState()
 	isOpen = digitalRead(OPEN_SENSOR_PIN) == LOW;
 	isClosed = digitalRead(CLOSE_SENSOR_PIN) == LOW;
 
+
 	if(isOpen && isClosed) {
-		if(iot->serialEnabled()) {
-			Serial.println("ERROR: Can't be both open and closed at the same time! Sensor failure!");
-		}
+		iot->error("Can't be both open and closed at the same time! Sensor failure!");
+
 		retval = GD_UNKNOWN;
 		return retval;
 	}
@@ -71,44 +69,56 @@ GarageDoorState getGarageDoorState()
 	return retval;
 }
 
-void toggleActionPin(unsigned int delayMS, unsigned int repeat)
+void triggerDoor()
 {
-	for(int i = 0; i < repeat; i++) {
-		digitalWrite(OPEN_SWTICH_PIN, HIGH);
-		delay(delayMS);
-		digitalWrite(OPEN_SWTICH_PIN, LOW);
-		delay(delayMS);
-	}
+	iot->info("Triggering Garage Door Open");
+	digitalWrite(OPEN_SWTICH_PIN, LOW);
+	delay(200);
+	digitalWrite(OPEN_SWTICH_PIN, HIGH);
+}
+
+void triggerLight()
+{
+	iot->info("Triggering Garage Door Light");
+	digitalWrite(LIGHT_SWITCH_PIN, LOW);
+	delay(200);
+	digitalWrite(LIGHT_SWITCH_PIN, HIGH);
+
 }
 
 void setup()
 {
 	iot = new CoogleIOT(LED_BUILTIN);
 
-	iot->enableSerial(SERIAL_BAUD);
-	iot->initialize();
+	iot->enableSerial(SERIAL_BAUD)
+        .setMQTTClientId(GARAGE_DOOR_MQTT_CLIENT_ID)
+	    .initialize();
 
 	pinMode(OPEN_SWTICH_PIN, OUTPUT);
+	pinMode(LIGHT_SWITCH_PIN, OUTPUT);
 	pinMode(OPEN_SENSOR_PIN, INPUT_PULLUP);
 	pinMode(CLOSE_SENSOR_PIN, INPUT_PULLUP);
 
-	digitalWrite(OPEN_SWTICH_PIN, LOW);
+	digitalWrite(OPEN_SWTICH_PIN, HIGH);
+	digitalWrite(LIGHT_SWITCH_PIN, HIGH);
 
 	if(iot->mqttActive()) {
 		mqtt = iot->getMQTTClient();
 
 		mqtt->setCallback(mqttCallbackHandler);
-		mqtt->subscribe(GARAGE_DOOR_ACTION_TOPIC);
+
+		iot->logPrintf(INFO, "Subscribed to Door-Open Topic: %s", GARAGE_DOOR_ACTION_TOPIC_DOOR);
+		iot->logPrintf(INFO, "Subscribed to Light-Activate Topic: %s", GARAGE_DOOR_ACTION_TOPIC_LIGHT);
+
+		mqtt->subscribe(GARAGE_DOOR_ACTION_TOPIC_DOOR);
+		mqtt->subscribe(GARAGE_DOOR_ACTION_TOPIC_LIGHT);
+
 		mqtt->publish(GARAGE_DOOR_STATUS_TOPIC, getDoorStateAsString(_currentState).c_str(), true);
 
-		if(iot->serialEnabled()) {
-			Serial.println("Garage Door Opener Initialized");
-		}
+		iot->info("Garage Door Opener Initialized");
 
 	} else {
-		if(iot->serialEnabled()) {
-			Serial.println("ERROR: MQTT Not Initialized!");
-		}
+		iot->error("MQTT Not initialized, Garage Door Opener Inactive");
 	}
 }
 
@@ -134,41 +144,17 @@ void mqttCallbackHandler(char *topic, byte *payload, unsigned int length)
 	String action;
 	char *payloadStr;
 
-	// This is annoying, payload is not null-terminated as a string,
-	// and the String class doesn't let us initialize it with a defined-length
-	// so we need to create our own first.
+	if(strcmp(topic, GARAGE_DOOR_ACTION_TOPIC_DOOR) == 0) {
 
-	payloadStr = (char *)malloc(length + 1);
-	memcpy(payloadStr, payload, length);
-	payloadStr[length] = NULL;
-	action = String(payloadStr);
-	free(payloadStr);
+		iot->info("Handling Garage Door Action Request");
+		iot->flashStatus(200, 1);
+		triggerDoor();
 
-	// We support three commands. The first is just an integer which represents
-	// a frequency in MS to toggle the switch on/off. My particular garage door
-	// uses a frequency like this to distinguish between open/close and other actions
-	// like turn on the integrate garage light or not.
+	} else if(strcmp(topic, GARAGE_DOOR_ACTION_TOPIC_LIGHT) == 0) {
 
-	if(action.toInt() > 0) {
+		iot->info("Handing Garage Door Light Request");
+		iot->flashStatus(200, 2);
+		triggerLight();
 
-		if(iot->serialEnabled()) {
-			Serial.printf("Toggling at frequency of %d ms (5 iterations)\n", action.toInt());
-		}
-
-		toggleActionPin(action.toInt(), 5);
-		return;
 	}
-
-	if(action.equals("open") || action.equals("close")) {
-
-		if(iot->serialEnabled()) {
-			Serial.println("Toggled at button-press frequency");
-		}
-
-		toggleActionPin(1000, 1);
-		return;
-	} else {
-		if(iot->serialEnabled()) {
-			Serial.printf("Unknown Command issued: %s\n", action.c_str());
-		}
-	}
+}
