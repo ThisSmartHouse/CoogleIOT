@@ -5,12 +5,11 @@ A ESP8266-12 Library for easy IOT device development.
 The CoogleIOT library was created to make building IOT devices on the ESP8266-12 microcontroller easier by providing a
 solid encapsulated framework for most of the common things you want to do on an IOT device, including:
 
-- Captive Portal for configuration of the device - allowing you to configure the AP name, the Wifi Client, and the built in MQTT Client. 
+- Captive Portal for configuration of the device - allowing you to configure the AP name, the Wifi Client, and the built in MQTT Client. Just connect to the AP and configure (mobile friendly).
 - Built in persistent logging mechanisms using SPIFFS filesystem (also available for viewing from the web interface)
-  Just connect to the AP and configure (mobile friendly).
 - Built in MQTT client (provided by PubSubClient) 
 - Built in UI libraries for the device (Mini.css for style, jquery 3.x for Javascript) that can be served from the AP
-  using the /css or /jquery URLs
+  using the `/css` or `/jquery` URLs
 - Built in NTP client for access to local date / time on device
 - Built in DNS Server during configuration for captive portal support when connected to the device as an AP directly
 - Built in Security-minded tools like HTML Escaping and other filters to prevent malicious inputs
@@ -39,7 +38,7 @@ Status Page
 
 CoogleIOT is designed to hang out in the background so your sketches are focused on the things you actually want to
 work on without having to worry about things like WiFi or MQTT clients. Here is an example of using it to control a
-Garage Door w/open and close sensors
+Garage Door w/open and close sensors:
 
 ```
 /* GarageDoor-Opener.h */
@@ -236,6 +235,11 @@ void mqttCallbackHandler(char *topic, byte *payload, unsigned int length)
 }
 
 ```
+
+There are other projects that use this library which serve as great examples of it's use as well. You should probably check out these:
+
+[Coogle Switch](https://github.com/ThisSmartHouse/coogle-switch) - A CoogleIOT-powered ESP8266-12 sketch for creating smart switches that operate over MQTT (controlling a relay module of configured sized). Just set up which pins your relay operates on and it takes care of all the MQTT topics, etc. you need for it to work.
+
 
 ## API
 
