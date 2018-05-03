@@ -38,7 +38,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifndef ARDUINO_ESP8266_ESP01
 #include "DNSServer/DNSServer.h"
+#endif
+
 #include "LUrlParser/LUrlParser.h"
 
 #include "CoogleEEPROM.h"
@@ -147,7 +150,10 @@ class CoogleIOT
         HTTPUpdateResult firmwareUpdateStatus;
         time_t now;
 
+#ifndef ARDUINO_ESP8266_ESP01
         DNSServer dnsServer;
+#endif
+
         WiFiClient espClient;
         PubSubClient *mqttClient;
         CoogleEEProm eeprom;

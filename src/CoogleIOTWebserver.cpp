@@ -194,6 +194,7 @@ void CoogleIOTWebserver::handleRoot()
 	page.replace(F("{{firmware_url}}"), htmlEncode(firmware_url));
 	page.replace(F("{{mqtt_port}}"), htmlEncode(mqtt_port));
 	page.replace(F("{{coogleiot_version}}"), htmlEncode(COOGLEIOT_VERSION));
+	page.replace(F("{{coogleiot_buildtime}}"), htmlEncode(__DATE__ " " __TIME__));
 	page.replace(F("{{coogleiot_ap_ssid}}"), htmlEncode(ap_name));
 	page.replace(F("{{wifi_ip_address}}"), htmlEncode(local_ip));
 	page.replace(F("{{mac_address}}"), htmlEncode(mac_address));

@@ -121,6 +121,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
           <thead>
             <tr>
               <th>CoogleIOT Version</th>
+              <th>Build Date/Time</th>
               <th>CoogleIOT AP Status</th>
               <th>CoogleIOT AP SSID</th>
               <th>WiFi Status</th>
@@ -135,6 +136,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
          <tbody>
            <tr>
              <td data-label="CoogleIOT Version">{{coogleiot_version}}</td>
+             <td data-label="Build Date/Time">{{coogleiot_buildtime}}</td>
              <td data-label="CoogleIOT AP Status">{{coogleiot_ap_status}}</td>
              <td data-label="CoogleIOT AP SSID">{{coogleiot_ap_ssid}}</td>
              <td data-label="WiFi Status">{{wifi_status}}</td>
