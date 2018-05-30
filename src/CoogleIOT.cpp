@@ -388,7 +388,7 @@ void CoogleIOT::loop()
 			}
 		}
 	}
-	
+
 	yield();
 	webServer->loop();
 
@@ -411,7 +411,7 @@ CoogleIOT& CoogleIOT::flashSOS()
 		flashStatus(200, 3);
 		delay(5000);
 	}
-	
+
 	return *this;
 }
 
@@ -515,10 +515,10 @@ CoogleIOT& CoogleIOT::flashStatus(int speed, int repeat)
 			digitalWrite(_statusPin, HIGH);
 			delay(speed);
 		}
-		
+
 		digitalWrite(_statusPin, HIGH);
 	}
-	
+
 	return *this;
 }
 
@@ -526,7 +526,7 @@ bool CoogleIOT::initialize()
 {
 	String firmwareUrl;
 	String localAPName;
-	
+
 	if(_statusPin > -1) {
 		pinMode(_statusPin, OUTPUT);
 		flashStatus(COOGLEIOT_STATUS_INIT);
@@ -537,20 +537,20 @@ bool CoogleIOT::initialize()
 	verifyFlashConfiguration();
 
 	randomSeed(micros());
-	
+
 	eeprom.initialize(COOGLE_EEPROM_EEPROM_SIZE);
 
 	SPIFFS.begin();
 
 	if(!eeprom.isApp((const byte *)COOGLEIOT_MAGIC_BYTES)) {
-		
+
 		info("EEPROM not initialized for platform, erasing..");
 
 		eeprom.reset();
 		eeprom.setApp((const byte *)COOGLEIOT_MAGIC_BYTES);
 		SPIFFS.format();
 	}
-	
+
 	logFile = SPIFFS.open(COOGLEIOT_SPIFFS_LOGFILE, "a+");
 
 	if(!logFile) {
@@ -573,7 +573,7 @@ bool CoogleIOT::initialize()
 	if(!connectToSSID()) {
 		error("Failed to connect to remote AP");
 	} else {
-	
+
 		syncNTPTime(COOGLEIOT_TIMEZONE_OFFSET, COOGLEIOT_DAYLIGHT_OFFSET);
 
 		if(!initializeMQTT()) {
@@ -659,10 +659,10 @@ void CoogleIOT::initializeLocalAP()
 	IPAddress apLocalIP(192,168,0,1);
 	IPAddress apSubnetMask(255,255,255,0);
 	IPAddress apGateway(192,168,0,1);
-	
+
 	localAPName = getAPName();
 	localAPPassword = getAPPassword();
-	
+
 	if(localAPPassword.length() == 0) {
 		info("No AP Password found in memory");
 		info("Setting to default password: " COOGLEIOT_AP_DEFAULT_PASSWORD);
@@ -688,7 +688,7 @@ void CoogleIOT::initializeLocalAP()
 
 	WiFi.softAPConfig(apLocalIP, apGateway, apSubnetMask);
 	WiFi.softAP(localAPName.c_str(), localAPPassword.c_str());
-	
+
 	info("Local IP Address: ");
 	info(WiFi.softAPIP().toString());
 
@@ -770,6 +770,32 @@ String CoogleIOT::getMQTTPassword()
 
 	String retval(mqtt);
 	return filterAscii(retval);
+}
+
+String CoogleIOT::getMQTTLWTTopic()
+{
+	char mqtt[COOGLEIOT_MQTT_LWT_TOPIC_MAXLEN];
+
+	if(!eeprom.readString(COOGLEIOT_MQTT_LWT_TOPIC_ADDR, mqtt, COOGLEIOT_MQTT_LWT_TOPIC_MAXLEN)) {
+		error("Failed to read MQTT LWT Topic from EEPROM");
+	}
+
+	String retval(mqtt);
+	return filterAscii(retval);
+	//return filterAscii("lwttest");
+}
+
+String CoogleIOT::getMQTTLWTMessage()
+{
+	char mqtt[COOGLEIOT_MQTT_LWT_MESSAGE_MAXLEN];
+
+	if(!eeprom.readString(COOGLEIOT_MQTT_LWT_MESSAGE_ADDR, mqtt, COOGLEIOT_MQTT_LWT_MESSAGE_MAXLEN)) {
+		error("Failed to read MQTT LWT Message from EEPROM");
+	}
+
+	String retval(mqtt);
+	return filterAscii(retval);
+	//return filterAscii("offline");
 }
 
 int CoogleIOT::getMQTTPort()
@@ -857,6 +883,35 @@ CoogleIOT& CoogleIOT::setMQTTPassword(String s)
 
 	if(!eeprom.writeString(COOGLEIOT_MQTT_USER_PASSWORD_ADDR, s)) {
 		error("Failed to write MQTT Password to EEPROM");
+	}
+
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::setMQTTLWTTopic(String s)
+{
+	if(s.length() > COOGLEIOT_MQTT_LWT_TOPIC_MAXLEN) {
+		warn("Attempted to write beyond max length for MQTT Last Will Topic");
+		return *this;
+	}
+
+	if(!eeprom.writeString(COOGLEIOT_MQTT_LWT_TOPIC_ADDR, s)) {
+		error("Failed to write MQTT Last Will Topic to EEPROM");
+	}
+	Serial.print("Setting MQTT TOPIC: ");
+	Serial.println(s);
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::setMQTTLWTMessage(String s)
+{
+	if(s.length() > COOGLEIOT_MQTT_LWT_MESSAGE_MAXLEN) {
+		warn("Attempted to write beyond max length for MQTT Last Will Message");
+		return *this;
+	}
+
+	if(!eeprom.writeString(COOGLEIOT_MQTT_LWT_MESSAGE_ADDR, s)) {
+		error("Failed to write MQTT Last Will Message to EEPROM");
 	}
 
 	return *this;
@@ -964,27 +1019,27 @@ bool CoogleIOT::initializeMQTT()
 		mqttClientActive = false;
 		return false;
 	}
-	
+
 	mqttClientId = getMQTTClientId();
 
 	if(mqttClientId.length() == 0) {
 		info("Setting to default MQTT Client ID: " COOGLEIOT_DEFAULT_MQTT_CLIENT_ID);
-		
+
 		mqttClientId = COOGLEIOT_DEFAULT_MQTT_CLIENT_ID;
-		
+
 		setMQTTClientId(mqttClientId);
 	}
-	
+
 	mqttPort = getMQTTPort();
-	
+
 	if(mqttPort == 0) {
 		info("Setting to default MQTT Port");
 		setMQTTPort(COOGLEIOT_DEFAULT_MQTT_PORT);
 	}
-	
+
 	mqttClient = new PubSubClient(espClient);
 	mqttClient->setServer(mqttHostname.c_str(), mqttPort);
-	
+
 	return connectToMQTT();
 }
 
@@ -996,7 +1051,7 @@ PubSubClient* CoogleIOT::getMQTTClient()
 bool CoogleIOT::connectToMQTT()
 {
 	bool connectResult;
-	String mqttHostname, mqttUsername, mqttPassword, mqttClientId;
+	String mqttHostname, mqttUsername, mqttPassword, mqttClientId, mqttLWTTopic, mqttLWTMessage;
 	int mqttPort;
 
 	if(mqttClient->connected()) {
@@ -1015,6 +1070,8 @@ bool CoogleIOT::connectToMQTT()
 	mqttPassword = getMQTTPassword();
 	mqttPort = getMQTTPort();
 	mqttClientId = getMQTTClientId();
+	mqttLWTTopic = getMQTTLWTTopic();
+	mqttLWTMessage = getMQTTLWTMessage();
 
 	if(mqttHostname.length() == 0) {
 		mqttClientActive = false;
@@ -1028,9 +1085,17 @@ bool CoogleIOT::connectToMQTT()
 	logPrintf(DEBUG, "Host: %s : %d", mqttHostname.c_str(), mqttPort);
 
 	if(mqttUsername.length() == 0) {
-		connectResult = mqttClient->connect(mqttClientId.c_str());
+		if(mqttLWTTopic.length() == 0) {
+			connectResult = mqttClient->connect(mqttClientId.c_str());
+		} else {
+			connectResult = mqttClient->connect(mqttClientId.c_str(), mqttLWTTopic.c_str(), 0, true, mqttLWTMessage.c_str());
+		}
 	} else {
-		connectResult = mqttClient->connect(mqttClientId.c_str(), mqttUsername.c_str(), mqttPassword.c_str());
+		if(mqttLWTTopic.length() == 0) {
+			connectResult = mqttClient->connect(mqttClientId.c_str(), mqttUsername.c_str(), mqttPassword.c_str());
+		} else {
+			connectResult = mqttClient->connect(mqttClientId.c_str(), mqttUsername.c_str(), mqttPassword.c_str(), mqttLWTTopic.c_str(), 0, true, mqttLWTMessage.c_str());
+		}
 	}
 
 	if(!mqttClient->connected()) {
@@ -1133,7 +1198,6 @@ String CoogleIOT::getRemoteAPName()
 
 	String retval(remoteAPName);
 
-
 	return filterAscii(retval);
 }
 
@@ -1156,39 +1220,39 @@ bool CoogleIOT::connectToSSID()
 	String localAPName;
 
 	flashStatus(COOGLEIOT_STATUS_WIFI_INIT);
-	
+
 	remoteAPName = getRemoteAPName();
 	remoteAPPassword = getRemoteAPPassword();
-	
+
 	if(remoteAPName.length() == 0) {
 		info("Cannot connect WiFi client, no remote AP specified");
 		return false;
-	} 
-	
+	}
+
 	info("Connecting to remote AP");
-	
+
 	if(remoteAPPassword.length() == 0) {
 		warn("No Remote AP Password Specified!");
 
 		WiFi.begin(remoteAPName.c_str(), NULL, 0, NULL, true);
-		
+
 	} else {
-		
+
 		WiFi.begin(remoteAPName.c_str(), remoteAPPassword.c_str(), 0, NULL, true);
-		
+
 	}
-	
+
 	for(int i = 0; (i < 50) && (WiFi.status() != WL_CONNECTED) && (WiFi.status() != WL_CONNECT_FAILED); i++) {
 		delay(500);
 	}
-	
+
 	if(WiFi.status() != WL_CONNECTED) {
 		error("Could not connect to Access Point!");
 		flashSOS();
-		
+
 		return false;
 	}
-	
+
 	info("Connected to Remote Access Point!");
 	info("Our IP Address is:");
 	info(WiFi.localIP().toString());

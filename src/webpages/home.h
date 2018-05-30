@@ -86,6 +86,14 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
             <label aria-hidden="true" for="mqtt_client_id">MQTT Client ID</label>
             <input aria-hidden="true" type="text" value="{{mqtt_client_id}}" id="mqtt_client_id" placeholder="my-client-id">
           </div>
+          <div class="input-group fluid">
+            <label aria-hidden="true" for="mqtt_lwt_topic">MQTT LWT Topic</label>
+            <input aria-hidden="true" type="text" value="{{mqtt_lwt_topic}}" id="mqtt_lwt_topic" placeholder="LWT topic">
+          </div>
+          <div class="input-group fluid">
+            <label aria-hidden="true" for="mqtt_lwt_message">MQTT LWT Message</label>
+            <input aria-hidden="true" type="text" value="{{mqtt_lwt_message}}" id="mqtt_lwt_message" placeholder="LWT message">
+          </div>
         </fieldset>
       </div>
       <input type="radio" name="navtabs" id="tab3" aria-hidden="true">
@@ -162,7 +170,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
 	<script src="/jquery"></script>
     <script>
       $(document).ready(function() {
-        
+
         var loadLog = function()
         {
            $.get('/logs', function(result) {
@@ -170,7 +178,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
               $('#logContent').scrollTop($('#logContent')[0].scrollHeight);
            });
         };
-        
+
         $('#tab5').on('click', loadLog);
         $('#refreshLogBtn').on('click', loadLog);
 
@@ -184,7 +192,7 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
 
         $('#saveBtn').on('click', function(e) {
           e.preventDefault();
-          
+
           var postData = {
             'ap_name' : $('#ap_name').val(),
             'ap_password' : $('#ap_password').val(),
@@ -195,20 +203,22 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
             'mqtt_username' : $('#mqtt_username').val(),
             'mqtt_password' : $('#mqtt_password').val(),
             'mqtt_client_id' : $('#mqtt_client_id').val(),
+            'mqtt_lwt_topic' : $('#mqtt_lwt_topic').val(),
+            'mqtt_lwt_message' : $('#mqtt_lwt_message').val(),
             'firmware_url' : $('#firmware_url').val()
           }
-          
+
           console.log(postData);
-          
+
           $.post('/api/save', postData, function(result) {
-            
+
             if(!result.status) {
               alert("Failed to save settings");
               return;
             }
-            
+
             alert("Settings Saved!");
-            
+
           });
         });
       });
