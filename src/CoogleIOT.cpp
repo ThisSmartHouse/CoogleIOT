@@ -782,7 +782,6 @@ String CoogleIOT::getMQTTLWTTopic()
 
 	String retval(mqtt);
 	return filterAscii(retval);
-	//return filterAscii("lwttest");
 }
 
 String CoogleIOT::getMQTTLWTMessage()
@@ -795,7 +794,6 @@ String CoogleIOT::getMQTTLWTMessage()
 
 	String retval(mqtt);
 	return filterAscii(retval);
-	//return filterAscii("offline");
 }
 
 int CoogleIOT::getMQTTPort()
