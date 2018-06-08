@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | CoogleIOT for ESP8266                                                |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2017 John Coggeshall                                   |
+  | Copyright (c) 2017-2018 John Coggeshall                              |
   +----------------------------------------------------------------------+
   | Licensed under the Apache License, Version 2.0 (the "License");      |
   | you may not use this file except in compliance with the License. You |
@@ -16,7 +16,7 @@
   | implied. See the License for the specific language governing         |
   | permissions and limitations under the License.                       |
   +----------------------------------------------------------------------+
-  | Authors: John Coggeshall <john@coggeshall.org>                       |
+  | Authors: John Coggeshall <john@thissmarthouse.com>                   |
   +----------------------------------------------------------------------+
 */
 
