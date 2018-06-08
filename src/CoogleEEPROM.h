@@ -16,7 +16,7 @@
   | implied. See the License for the specific language governing         |
   | permissions and limitations under the License.                       |
   +----------------------------------------------------------------------+
-  | Authors: John Coggeshall <john@coggeshall.org>                       |
+  | Authors: John Coggeshall <john@thissmarthouse.com>                   |
   +----------------------------------------------------------------------+
 */
 
