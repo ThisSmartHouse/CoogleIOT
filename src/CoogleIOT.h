@@ -96,8 +96,8 @@ class CoogleIOT
         String getMQTTUsername();
         String getMQTTPassword();
         String getMQTTClientId();
-				String getMQTTLWTTopic();
-				String getMQTTLWTMessage();
+        String getMQTTLWTTopic();
+        String getMQTTLWTMessage();
         String getAPName();
         String getAPPassword();
 
@@ -113,8 +113,8 @@ class CoogleIOT
         CoogleIOT& setMQTTHostname(String);
         CoogleIOT& setMQTTUsername(String);
         CoogleIOT& setMQTTPassword(String);
-				CoogleIOT& setMQTTLWTTopic(String);
-				CoogleIOT& setMQTTLWTMessage(String);
+        CoogleIOT& setMQTTLWTTopic(String);
+        CoogleIOT& setMQTTLWTMessage(String);
         CoogleIOT& setRemoteAPName(String);
         CoogleIOT& setRemoteAPPassword(String);
         CoogleIOT& setMQTTClientId(String);
