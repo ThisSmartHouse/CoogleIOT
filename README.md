@@ -1,8 +1,8 @@
 # CoogleIOT
 
-A ESP8266-12 Library for easy IOT device development.
+A ESP8266 Library for easy IOT device development.
 
-The CoogleIOT library was created to make building IOT devices on the ESP8266-12 microcontroller easier by providing a
+The CoogleIOT library was created to make building IOT devices on the ESP8266 microcontroller easier by providing a
 solid encapsulated framework for most of the common things you want to do on an IOT device, including:
 
 - Captive Portal for configuration of the device - allowing you to configure the AP name, the Wifi Client, and the built in MQTT Client. Just connect to the AP and configure (mobile friendly).
@@ -238,7 +238,7 @@ void mqttCallbackHandler(char *topic, byte *payload, unsigned int length)
 
 There are other projects that use this library which serve as great examples of it's use as well. You should probably check out these:
 
-[Coogle Switch](https://github.com/ThisSmartHouse/coogle-switch) - A CoogleIOT-powered ESP8266-12 sketch for creating smart switches that operate over MQTT (controlling a relay module of configured sized). Just set up which pins your relay operates on and it takes care of all the MQTT topics, etc. you need for it to work.
+[Coogle Switch](https://github.com/ThisSmartHouse/coogle-switch) - A CoogleIOT-powered ESP8266 sketch for creating smart switches that operate over MQTT (controlling a relay module of configured sized). Just set up which pins your relay operates on and it takes care of all the MQTT topics, etc. you need for it to work.
 
 ## Where's my Device?
 
