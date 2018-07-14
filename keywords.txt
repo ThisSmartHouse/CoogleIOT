@@ -1,6 +1,6 @@
 CoogleIOT	KEYWORD1
 enableSerial	KEYWORD2
-getMQTTClient	EYWORD2
+getMQTTClient	KEYWORD2
 serialEnabled	KEYWORD2
 flashStatus	KEYWORD2
 flashSOS	KEYWORD2
