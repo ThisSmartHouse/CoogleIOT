@@ -337,17 +337,19 @@ void CoogleIOT::loop()
 
 		wifiFailuresCount = 0;
 
-		if(!mqttClient->connected()) {
-			yield();
-			if(!connectToMQTT()) {
-				mqttFailuresCount++;
+		if (mqttClient) {
+			if(!mqttClient->connected()) {
+				yield();
+				if(!connectToMQTT()) {
+					mqttFailuresCount++;
+				}
 			}
-		}
 
-		if(mqttClientActive) {
-			mqttFailuresCount = 0;
-			yield();
-			mqttClient->loop();
+			if(mqttClientActive) {
+				mqttFailuresCount = 0;
+				yield();
+				mqttClient->loop();
+			}
 		}
 
 		if(ntpClientActive) {
