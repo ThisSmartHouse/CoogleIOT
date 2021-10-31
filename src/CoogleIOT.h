@@ -78,6 +78,7 @@ class CoogleIOT
         ~CoogleIOT();
         void loop();
         bool initialize();
+        void loopWebServer();
         CoogleIOT& enableSerial(int, SerialConfig, SerialMode);
         CoogleIOT& enableSerial(int, SerialConfig);
         CoogleIOT& enableSerial(int);
@@ -98,6 +99,12 @@ class CoogleIOT
         String getMQTTClientId();
         String getMQTTLWTTopic();
         String getMQTTLWTMessage();
+		//--
+        String getMQTTAppSpecific1();
+        String getMQTTAppSpecific2();
+        String getMQTTSpecific1Name();
+        String getMQTTSpecific2Name();
+        //--
         String getAPName();
         String getAPPassword();
 
@@ -115,6 +122,12 @@ class CoogleIOT
         CoogleIOT& setMQTTPassword(String);
         CoogleIOT& setMQTTLWTTopic(String);
         CoogleIOT& setMQTTLWTMessage(String);
+		//--
+        CoogleIOT& setMQTTAppSpecific1(String);
+        CoogleIOT& setMQTTAppSpecific2(String);
+        CoogleIOT& setMQTTSpecific1Name(String);
+        CoogleIOT& setMQTTSpecific2Name(String);
+        //--
         CoogleIOT& setRemoteAPName(String);
         CoogleIOT& setRemoteAPPassword(String);
         CoogleIOT& setMQTTClientId(String);

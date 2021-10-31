@@ -337,7 +337,7 @@ void CoogleIOT::loop()
 
 		wifiFailuresCount = 0;
 
-		if(!mqttClient->connected()) {
+		if(mqttClient && (!mqttClient->connected())) {
 			yield();
 			if(!connectToMQTT()) {
 				mqttFailuresCount++;
@@ -347,7 +347,9 @@ void CoogleIOT::loop()
 		if(mqttClientActive) {
 			mqttFailuresCount = 0;
 			yield();
-			mqttClient->loop();
+			if (mqttClient) {
+				mqttClient->loop();
+			}
 		}
 
 		if(ntpClientActive) {
@@ -389,16 +391,20 @@ void CoogleIOT::loop()
 		}
 	}
 
-	yield();
-	webServer->loop();
+loopWebServer();
 
-	yield();
 #ifndef ARDUINO_ESP8266_ESP01
 	if(dnsServerActive) {
 		dnsServer.processNextRequest();
 	}
 #endif
 
+}
+
+void CoogleIOT::loopWebServer() {
+	yield();
+	webServer->loop();
+	yield();
 }
 
 CoogleIOT& CoogleIOT::flashSOS()
@@ -548,6 +554,8 @@ bool CoogleIOT::initialize()
 
 		eeprom.reset();
 		eeprom.setApp((const byte *)COOGLEIOT_MAGIC_BYTES);
+		setMQTTSpecific1Name(COOGLEIOT_DEFAULT_APP_SPECIFIC_NAME_1);
+		setMQTTSpecific2Name(COOGLEIOT_DEFAULT_APP_SPECIFIC_NAME_2);
 		SPIFFS.format();
 	}
 
@@ -634,7 +642,7 @@ bool CoogleIOT::verifyFlashConfiguration()
 	} else {
 		debug("Flash Chip Configuration Verified: OK");
 	}
-
+	return true;
 }
 
 void CoogleIOT::enableConfigurationMode()
@@ -796,6 +804,57 @@ String CoogleIOT::getMQTTLWTMessage()
 	return filterAscii(retval);
 }
 
+//---
+String CoogleIOT::getMQTTAppSpecific1()
+{
+	char mqtt[COOGLEIOT_MQTT_APP_SPECIFIC_1_MAXLEN];
+
+	if(!eeprom.readString(COOGLEIOT_MQTT_APP_SPECIFIC_1_ADDR, mqtt, COOGLEIOT_MQTT_APP_SPECIFIC_1_MAXLEN)) {
+		error("Failed to read app specific (1) from EEPROM");
+	}
+
+	String retval(mqtt);
+	return filterAscii(retval);
+}
+
+String CoogleIOT::getMQTTAppSpecific2()
+{
+	char mqtt[COOGLEIOT_MQTT_APP_SPECIFIC_2_MAXLEN];
+
+	if(!eeprom.readString(COOGLEIOT_MQTT_APP_SPECIFIC_2_ADDR, mqtt, COOGLEIOT_MQTT_APP_SPECIFIC_2_MAXLEN)) {
+		error("Failed to read app specific (2) from EEPROM");
+	}
+
+	String retval(mqtt);
+	return filterAscii(retval);
+}
+
+String CoogleIOT::getMQTTSpecific1Name()
+{
+	char mqtt[COOGLEIOT_MQTT_SPECIFIC_1_NAME_MAXLEN];
+
+	if (!eeprom.readString(COOGLEIOT_MQTT_SPECIFIC_1_NAME_ADDR, mqtt, COOGLEIOT_MQTT_SPECIFIC_1_NAME_MAXLEN)) {
+		error("Failed to read app specific data name (1) from EEPROM");
+	}
+
+	String retval(mqtt);
+	return filterAscii(retval);
+}
+
+String CoogleIOT::getMQTTSpecific2Name()
+{
+	char mqtt[COOGLEIOT_MQTT_SPECIFIC_2_NAME_MAXLEN];
+
+	if (!eeprom.readString(COOGLEIOT_MQTT_SPECIFIC_2_NAME_ADDR, mqtt, COOGLEIOT_MQTT_SPECIFIC_2_NAME_MAXLEN)) {
+		error("Failed to read app specific data name (2) from EEPROM");
+	}
+
+	String retval(mqtt);
+	return filterAscii(retval);
+}
+//---
+
+
 int CoogleIOT::getMQTTPort()
 {
 	int mqtt;
@@ -807,6 +866,7 @@ int CoogleIOT::getMQTTPort()
 	return mqtt;
 }
 
+
 CoogleIOT& CoogleIOT::setMQTTPort(int port)
 {
 	if(!eeprom.writeInt(COOGLEIOT_MQTT_PORT_ADDR, port)) {
@@ -815,6 +875,7 @@ CoogleIOT& CoogleIOT::setMQTTPort(int port)
 
 	return *this;
 }
+
 
 CoogleIOT& CoogleIOT::setFirmwareUpdateUrl(String s)
 {
@@ -915,6 +976,65 @@ CoogleIOT& CoogleIOT::setMQTTLWTMessage(String s)
 	return *this;
 }
 
+//--
+CoogleIOT& CoogleIOT::setMQTTAppSpecific1(String s)
+{
+	if(s.length() > COOGLEIOT_MQTT_APP_SPECIFIC_1_MAXLEN) {
+		warn("Attempted to write beyond max length for app specific data 1");
+		return *this;
+	}
+
+	if(!eeprom.writeString(COOGLEIOT_MQTT_APP_SPECIFIC_1_ADDR, s)) {
+		error("Failed to write MQTT app specific data 1");
+	}
+
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::setMQTTAppSpecific2(String s)
+{
+	if(s.length() > COOGLEIOT_MQTT_APP_SPECIFIC_2_MAXLEN) {
+		warn("Attempted to write beyond max length for app specific data 2");
+		return *this;
+	}
+
+	if(!eeprom.writeString(COOGLEIOT_MQTT_APP_SPECIFIC_2_ADDR, s)) {
+		error("Failed to write MQTT app specific data 2");
+	}
+
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::setMQTTSpecific1Name(String s)
+{
+	if (s.length() > COOGLEIOT_MQTT_SPECIFIC_1_NAME_MAXLEN) {
+		warn("Attempted to write beyond max length for app specific NAME 1");
+		return *this;
+	}
+
+	if (!eeprom.writeString(COOGLEIOT_MQTT_SPECIFIC_1_NAME_ADDR, s)) {
+		error("Failed to write MQTT app specific data 1");
+	}
+
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::setMQTTSpecific2Name(String s)
+{
+	if (s.length() > COOGLEIOT_MQTT_SPECIFIC_2_NAME_MAXLEN) {
+		warn("Attempted to write beyond max length for app specific NAME 2");
+		return *this;
+	}
+
+	if (!eeprom.writeString(COOGLEIOT_MQTT_SPECIFIC_2_NAME_ADDR, s)) {
+		error("Failed to write MQTT app specific data 2");
+	}
+
+	return *this;
+}
+//--
+
+
 CoogleIOT& CoogleIOT::setRemoteAPName(String s)
 {
 	if(s.length() > COOGLEIOT_REMOTE_AP_NAME_MAXLEN) {
@@ -983,9 +1103,19 @@ void CoogleIOT::checkForFirmwareUpdate()
 	if(!URL.GetPort(&port)) {
 		port = 80;
 	}
-
-	firmwareUpdateStatus = ESPhttpUpdate.update(URL.m_Host.c_str(), port, URL.m_Path.c_str(), COOGLEIOT_VERSION);
-
+	// 15 Sep 2021 MRF
+	// From ESP8266 core 3.0.0 version onwards the following prototype has been deprecated:
+	//     HTTPUpdateResult ESPhttpUpdate::update(const char* host, int& port, const char* uri, const char * currentVersion);
+	// Old call:
+	//     firmwareUpdateStatus = ESPhttpUpdate.update(URL.m_Host.c_str(), port, URL.m_Path.c_str(), COOGLEIOT_VERSION);
+	// Using prototype:
+	//     HTTPUpdateResult ESP8266HTTPUpdate::update(WiFiClient & client, const String & host, uint16_t port, const String & uri, const String & currentVersion)
+	//
+	const String ver_str = COOGLEIOT_VERSION;
+	const String uri_str = URL.m_Path.c_str();
+	const String host_str = URL.m_Host.c_str();
+	firmwareUpdateStatus = ESPhttpUpdate.update(espClient, host_str, port, uri_str, ver_str);  
+	//
 	os_intr_unlock();
 }
 

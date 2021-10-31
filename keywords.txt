@@ -35,4 +35,23 @@ ntpActive	KEYWORD2
 firmwareClientActive	KEYWORD2
 apStatus	KEYWORD2
 checkForFirmwareUpdate	KEYWORD2
+loopWebServer   KEYWORD2
+getMQTTAppSpecific1 KEYWORD2
+getMQTTAppSpecific2 KEYWORD2
+getMQTTSpecific1Name    KEYWORD2
+getMQTTSpecific2Name    KEYWORD2
+setMQTTAppSpecific1 KEYWORD2
+setMQTTAppSpecific2 KEYWORD2
+setMQTTSpecific1Name    KEYWORD2
+setMQTTSpecific2Name    KEYWORD2
+warn    KEYWORD2
+error   KEYWORD2
+critical    KEYWORD2
+log KEYWORD2
+logPrintf   KEYWORD2
+debug   KEYWORD2
+info    KEYWORD2
+
+
+
 
