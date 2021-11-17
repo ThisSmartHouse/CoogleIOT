@@ -338,6 +338,43 @@ void CoogleIOT::loop()
 		wifiFailuresCount = 0;
 
 		if(mqttClient && (!mqttClient->connected())) {
+
+			switch (mqttClient->state()) {
+			case MQTT_CONNECTION_TIMEOUT:
+				error("MQTT Failure: Connection Timeout (server didn't respond within keepalive time)");
+				break;
+			case MQTT_CONNECTION_LOST:
+				error("MQTT Failure: Connection Lost (the network connection was broken)");
+				break;
+			case MQTT_CONNECT_FAILED:
+				error("MQTT Failure: Connection Failed (the network connection failed)");
+				break;
+			case MQTT_DISCONNECTED:
+				error("MQTT Failure: Disconnected (the client is disconnected)");
+				break;
+			case MQTT_CONNECTED:
+				error("MQTT reported as not connected, but state says it is!");
+				break;
+			case MQTT_CONNECT_BAD_PROTOCOL:
+				error("MQTT Failure: Bad Protocol (the server doesn't support the requested version of MQTT)");
+				break;
+			case MQTT_CONNECT_BAD_CLIENT_ID:
+				error("MQTT Failure: Bad Client ID (the server rejected the client identifier)");
+				break;
+			case MQTT_CONNECT_UNAVAILABLE:
+				error("MQTT Failure: Unavailable (the server was unable to accept the connection)");
+				break;
+			case MQTT_CONNECT_BAD_CREDENTIALS:
+				error("MQTT Failure: Bad Credentials (the username/password were rejected)");
+				break;
+			case MQTT_CONNECT_UNAUTHORIZED:
+				error("MQTT Failure: Unauthorized (the client was not authorized to connect)");
+				break;
+			default:
+				error("MQTT Failure: Unknown Error");
+				break;
+			}
+			//----------------------------------------------------------------------------------------------------------------
 			yield();
 			if(!connectToMQTT()) {
 				mqttFailuresCount++;
@@ -348,7 +385,7 @@ void CoogleIOT::loop()
 			mqttFailuresCount = 0;
 			yield();
 			if (mqttClient) {
-				mqttClient->loop();
+				bool b = mqttClient->loop();
 			}
 		}
 

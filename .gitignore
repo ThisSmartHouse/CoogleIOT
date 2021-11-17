@@ -1,5 +1,8 @@
 .cproject
 .project
 .settings
-.DS_Store
+screenshots/.DS_Store
 .git
+.vs
+src/.vs
+
