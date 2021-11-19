@@ -40,13 +40,30 @@ extern "C" void __coogle_iot_sketch_timer_callback(void *pArg)
 	__coogle_iot_self->sketchTimerTick = true;
 }
 
-CoogleIOT::CoogleIOT(int statusPin)
+CoogleIOT::CoogleIOT(int statusPin) : Tty(Serial)
 {
-    _statusPin = statusPin;
-    _serial = false;
+	_iot_init(statusPin);
 }
 
-CoogleIOT::CoogleIOT()
+CoogleIOT::CoogleIOT(Print& the_tty) : Tty(the_tty)
+{
+	_iot_init(-1);
+}
+
+CoogleIOT::CoogleIOT(int statusPin, Print& the_tty) : Tty(the_tty)
+{
+	_iot_init(statusPin);
+}
+
+
+void CoogleIOT::_iot_init(int statusPin)
+{
+	_statusPin = statusPin;
+	_serial = false;
+}
+
+
+CoogleIOT::CoogleIOT() : Tty(Serial)
 {
 	CoogleIOT(-1);
 }
@@ -61,7 +78,9 @@ CoogleIOT::~CoogleIOT()
 	}
 
 	SPIFFS.end();
-	Serial.end();
+	if (&Tty == &Serial) {
+		Serial.end();
+	}
 
 	if(_firmwareClientActive) {
 		os_timer_disarm(&firmwareUpdateTimer);
@@ -239,7 +258,7 @@ CoogleIOT& CoogleIOT::log(String msg, CoogleIOT_LogSeverity severity)
 	String logMsg = buildLogMsg(msg, severity);
 
 	if(_serial) {
-		Serial.println(logMsg);
+		Tty.println(logMsg);
 	}
 
 	if(!logFile) {
@@ -254,7 +273,7 @@ CoogleIOT& CoogleIOT::log(String msg, CoogleIOT_LogSeverity severity)
 
 		if(!logFile) {
 			if(_serial) {
-				Serial.println("ERROR Could not open SPIFFS log file!");
+				Tty.println("ERROR Could not open SPIFFS log file!");
 			}
 			return *this;
 		}
@@ -994,8 +1013,8 @@ CoogleIOT& CoogleIOT::setMQTTLWTTopic(String s)
 	if(!eeprom.writeString(COOGLEIOT_MQTT_LWT_TOPIC_ADDR, s)) {
 		error("Failed to write MQTT Last Will Topic to EEPROM");
 	}
-	Serial.print("Setting MQTT TOPIC: ");
-	Serial.println(s);
+	Tty.print("Setting MQTT TOPIC: ");
+	Tty.println(s);
 	return *this;
 }
 
@@ -1432,30 +1451,27 @@ CoogleIOT& CoogleIOT::enableSerial()
 
 CoogleIOT& CoogleIOT::enableSerial(int baud)
 {
-    if(!Serial) {
-
-      Serial.begin(baud);
-
-      while(!Serial) {
-          yield();
-      }
-
-    }
-
+	if (&Tty == &Serial) {
+		if(!Serial) {
+			Serial.begin(baud);
+			while(!Serial) {
+				yield();
+			}
+	    }
+	}
     _serial = true;
     return *this;
 }
 
 CoogleIOT& CoogleIOT::enableSerial(int baud, SerialConfig config)
 {
-    if(!Serial) {
-
-      Serial.begin(baud, config);
-
-      while(!Serial) {
-          yield();
-      }
-
+	if (&Tty == &Serial) {
+		if (!Serial) {
+			Serial.begin(baud, config);
+			while (!Serial) {
+				yield();
+			}
+		}
     }
 
     _serial = true;
@@ -1464,14 +1480,13 @@ CoogleIOT& CoogleIOT::enableSerial(int baud, SerialConfig config)
 
 CoogleIOT& CoogleIOT::enableSerial(int baud, SerialConfig config, SerialMode mode)
 {
-    if(!Serial) {
-
-      Serial.begin(baud, config, mode);
-
-      while(!Serial) {
-          yield();
-      }
-
+	if (&Tty == &Serial) {
+		if (!Serial) {
+			Serial.begin(baud, config, mode);
+			while (!Serial) {
+				yield();
+			}
+		}
     }
 
     _serial = true;

@@ -18,6 +18,7 @@
   +----------------------------------------------------------------------+
   | Authors: John Coggeshall <john@thissmarthouse.com>                   |
   +----------------------------------------------------------------------+
+
 */
 
 #ifndef COOGLEIOT_H
@@ -73,8 +74,11 @@ class CoogleIOT
 		bool sketchTimerTick = false;
 		bool _restarting = false;
 
-        CoogleIOT(int);
         CoogleIOT();
+        CoogleIOT(int);
+        CoogleIOT(Print& the_tty);
+        CoogleIOT(int statusPin, Print& the_tty);
+
         ~CoogleIOT();
         void loop();
         bool initialize();
@@ -159,7 +163,12 @@ class CoogleIOT
 
         void checkForFirmwareUpdate();
 
+    protected:
+        Print& Tty;  // Print class derived object, e. g. Serial. Added to allow using other consoles 
+
+
     private:
+        void _iot_init(int statusPin);
 
         bool _serial;
         int _statusPin;
