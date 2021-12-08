@@ -310,12 +310,14 @@ void CoogleIOT::loop()
 
 		if((wifiFailuresCount > COOGLEIOT_MAX_WIFI_ATTEMPTS) && (WiFi.status() != WL_CONNECTED)) {
 			info("Failed too many times to establish a WiFi connection. Restarting Device.");
+			clear_ip_config();
 			restartDevice();
 			return;
 		}
 
 		if((mqttFailuresCount > COOGLEIOT_MAX_MQTT_ATTEMPTS) && !mqttClient->connected()) {
 			info("Failed too many times to establish a MQTT connection. Restarting Device.");
+			clear_ip_config();
 			restartDevice();
 			return;
 		}
@@ -622,11 +624,6 @@ bool CoogleIOT::initialize()
 	} else {
 		info("Log file successfully opened");
 	}
-
-	WiFi.disconnect();
-	WiFi.setAutoConnect(false);
-	WiFi.setAutoReconnect(true);
-	WiFi.mode(WIFI_AP_STA);
 
 	localAPName = getAPName();
 
@@ -1415,6 +1412,14 @@ bool CoogleIOT::connectToSSID()
 
 	info("Connecting to remote AP");
 
+	//> MRF 2021.12.04 MOVED HERE FORM initialize()
+	WiFi.disconnect(true);      // MRF 2021.12.04 added (true)
+	WiFi.mode(WIFI_AP_STA);
+	clear_ip_config();
+	WiFi.setAutoConnect(false);
+	WiFi.setAutoReconnect(true);
+	//<
+
 	if(remoteAPPassword.length() == 0) {
 		warn("No Remote AP Password Specified!");
 
@@ -1435,6 +1440,10 @@ bool CoogleIOT::connectToSSID()
 		flashSOS();
 
 		return false;
+	}
+
+	if (static_address_set) {
+		update_ip_config();  // Configure  static IPparameters if set by user
 	}
 
 	info("Connected to Remote Access Point!");
@@ -1491,4 +1500,38 @@ CoogleIOT& CoogleIOT::enableSerial(int baud, SerialConfig config, SerialMode mod
 
     _serial = true;
     return *this;
+}
+
+CoogleIOT&  CoogleIOT::setStaticAddress(IPAddress address, IPAddress gateway, IPAddress subnet_mask, IPAddress dns1, IPAddress dns2)
+{
+	static_address_set = true;
+	static_address = address;
+	static_gateway = gateway;
+	static_subnet = subnet_mask;
+	static_dns1 = dns1;
+	static_dns2 = dns2;
+	update_ip_config();
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::clearStaticAddress()
+{
+	static_address_set = false;
+	static_address = static_gateway = static_subnet = static_dns1 = static_dns2 = IPAddress(0UL, 0UL, 0UL, 0UL);
+	clear_ip_config();
+	return *this;
+}
+
+
+void  CoogleIOT::clear_ip_config() 
+{
+	ESP.eraseConfig();           
+	WiFi.config(0UL, 0UL, 0UL, 0UL, 0UL);		
+}
+
+void CoogleIOT::update_ip_config()
+{
+	if(static_address_set) 	{
+			WiFi.config(static_address, static_gateway, static_subnet, static_dns1,static_dns2);	
+	}
 }

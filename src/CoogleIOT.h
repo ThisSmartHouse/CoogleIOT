@@ -163,6 +163,10 @@ class CoogleIOT
 
         void checkForFirmwareUpdate();
 
+        //--Allow for static address to be configured
+        CoogleIOT& setStaticAddress(IPAddress address, IPAddress gateway, IPAddress subnet_mask, IPAddress dns1, IPAddress dns2);
+        CoogleIOT& clearStaticAddress();
+
     protected:
         Print& Tty;  // Print class derived object, e. g. Serial. Added to allow using other consoles 
 
@@ -207,6 +211,16 @@ class CoogleIOT
         bool connectToSSID();
         bool initializeMQTT();
         bool connectToMQTT();
+
+        //--
+        bool static_address_set = false;
+        IPAddress static_address = 0UL;
+        IPAddress static_gateway = 0UL;
+        IPAddress static_subnet = 0UL;
+        IPAddress static_dns1 = 0UL;
+        IPAddress static_dns2 = 0UL;
+        void update_ip_config();
+        void clear_ip_config();
 };
 
 #endif
