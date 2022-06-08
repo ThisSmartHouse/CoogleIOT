@@ -18,6 +18,7 @@
   +----------------------------------------------------------------------+
   | Authors: John Coggeshall <john@thissmarthouse.com>                   |
   +----------------------------------------------------------------------+
+
 */
 
 #ifndef COOGLEIOT_H
@@ -73,11 +74,15 @@ class CoogleIOT
 		bool sketchTimerTick = false;
 		bool _restarting = false;
 
-        CoogleIOT(int);
         CoogleIOT();
+        CoogleIOT(int);
+        CoogleIOT(Print& the_tty);
+        CoogleIOT(int statusPin, Print& the_tty);
+
         ~CoogleIOT();
         void loop();
         bool initialize();
+        void loopWebServer();
         CoogleIOT& enableSerial(int, SerialConfig, SerialMode);
         CoogleIOT& enableSerial(int, SerialConfig);
         CoogleIOT& enableSerial(int);
@@ -98,6 +103,12 @@ class CoogleIOT
         String getMQTTClientId();
         String getMQTTLWTTopic();
         String getMQTTLWTMessage();
+		//--
+        String getMQTTAppSpecific1();
+        String getMQTTAppSpecific2();
+        String getMQTTSpecific1Name();
+        String getMQTTSpecific2Name();
+        //--
         String getAPName();
         String getAPPassword();
 
@@ -115,6 +126,12 @@ class CoogleIOT
         CoogleIOT& setMQTTPassword(String);
         CoogleIOT& setMQTTLWTTopic(String);
         CoogleIOT& setMQTTLWTMessage(String);
+		//--
+        CoogleIOT& setMQTTAppSpecific1(String);
+        CoogleIOT& setMQTTAppSpecific2(String);
+        CoogleIOT& setMQTTSpecific1Name(String);
+        CoogleIOT& setMQTTSpecific2Name(String);
+        //--
         CoogleIOT& setRemoteAPName(String);
         CoogleIOT& setRemoteAPPassword(String);
         CoogleIOT& setMQTTClientId(String);
@@ -146,7 +163,16 @@ class CoogleIOT
 
         void checkForFirmwareUpdate();
 
+        //--Allow for static address to be configured
+        CoogleIOT& setStaticAddress(IPAddress address, IPAddress gateway, IPAddress subnet_mask, IPAddress dns1, IPAddress dns2);
+        CoogleIOT& clearStaticAddress();
+
+    protected:
+        Print& Tty;  // Print class derived object, e. g. Serial. Added to allow using other consoles 
+
+
     private:
+        void _iot_init(int statusPin);
 
         bool _serial;
         int _statusPin;
@@ -185,6 +211,16 @@ class CoogleIOT
         bool connectToSSID();
         bool initializeMQTT();
         bool connectToMQTT();
+
+        //--
+        bool static_address_set = false;
+        IPAddress static_address = 0UL;
+        IPAddress static_gateway = 0UL;
+        IPAddress static_subnet = 0UL;
+        IPAddress static_dns1 = 0UL;
+        IPAddress static_dns2 = 0UL;
+        void update_ip_config();
+        void clear_ip_config();
 };
 
 #endif

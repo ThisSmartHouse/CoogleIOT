@@ -38,37 +38,45 @@
       <input type="radio" name="navtabs" id="tab2" aria-hidden="true">
       <label for="tab2" aria-hidden="true">MQTT</label>
       <div style="height: 500px">
-        <fieldset>
-          <legend>MQTT Client Configuration</legend>
-          <div class="input-group fluid">
-            <label aria-hidden="true" for="mqtt_host">MQTT Host</label>
-            <input aria-hidden="true" type="text" value="{{mqtt_host}}" id="mqtt_host" placeholder="mqtt.example.com">
-          </div>
-          <div class="input-group fluid">
-            <label aria-hidden="true" for="mqtt_port">MQTT Port</label>
-            <input aria-hidden="true" type="text" value="{{mqtt_port}}" id="mqtt_port" placeholder="1883">
-          </div>
-          <div class="input-group fluid">
-            <label aria-hidden="true" for="mqtt_username">MQTT Username</label>
-            <input aria-hidden="true" type="text" value="{{mqtt_username}}" id="mqtt_username" placeholder="coogleiot">
-          </div>
-          <div class="input-group fluid">
-            <label aria-hidden="true" for="mqtt_password">MQTT Pasword</label>
-            <input aria-hidden="true" type="password" id="mqtt_password" value="{{mqtt_password}}">
-          </div>
-          <div class="input-group fluid">
-            <label aria-hidden="true" for="mqtt_client_id">MQTT Client ID</label>
-            <input aria-hidden="true" type="text" value="{{mqtt_client_id}}" id="mqtt_client_id" placeholder="my-client-id">
-          </div>
-          <div class="input-group fluid">
-            <label aria-hidden="true" for="mqtt_lwt_topic">MQTT LWT Topic</label>
-            <input aria-hidden="true" type="text" value="{{mqtt_lwt_topic}}" id="mqtt_lwt_topic" placeholder="LWT topic">
-          </div>
-          <div class="input-group fluid">
-            <label aria-hidden="true" for="mqtt_lwt_message">MQTT LWT Message</label>
-            <input aria-hidden="true" type="text" value="{{mqtt_lwt_message}}" id="mqtt_lwt_message" placeholder="LWT message">
-          </div>
-        </fieldset>
+          <fieldset>
+              <legend>MQTT Client Configuration</legend>
+              <div class="input-group fluid">
+                  <label aria-hidden="true" for="mqtt_host">MQTT Host</label>
+                  <input aria-hidden="true" type="text" value="{{mqtt_host}}" id="mqtt_host" placeholder="mqtt.example.com">
+              </div>
+              <div class="input-group fluid">
+                  <label aria-hidden="true" for="mqtt_port">MQTT Port</label>
+                  <input aria-hidden="true" type="text" value="{{mqtt_port}}" id="mqtt_port" placeholder="1883">
+              </div>
+              <div class="input-group fluid">
+                  <label aria-hidden="true" for="mqtt_username">MQTT Username</label>
+                  <input aria-hidden="true" type="text" value="{{mqtt_username}}" id="mqtt_username" placeholder="coogleiot">
+              </div>
+              <div class="input-group fluid">
+                  <label aria-hidden="true" for="mqtt_password">MQTT Pasword</label>
+                  <input aria-hidden="true" type="password" id="mqtt_password" value="{{mqtt_password}}">
+              </div>
+              <div class="input-group fluid">
+                  <label aria-hidden="true" for="mqtt_client_id">MQTT Client ID</label>
+                  <input aria-hidden="true" type="text" value="{{mqtt_client_id}}" id="mqtt_client_id" placeholder="my-client-id">
+              </div>
+              <div class="input-group fluid">
+                  <label aria-hidden="true" for="mqtt_lwt_topic">MQTT LWT Topic</label>
+                  <input aria-hidden="true" type="text" value="{{mqtt_lwt_topic}}" id="mqtt_lwt_topic" placeholder="LWT topic">
+              </div>
+              <div class="input-group fluid">
+                  <label aria-hidden="true" for="mqtt_lwt_message">MQTT LWT Message</label>
+                  <input aria-hidden="true" type="text" value="{{mqtt_lwt_message}}" id="mqtt_lwt_message" placeholder="LWT message">
+              </div>
+              <div class="input-group fluid">
+                  <label aria-hidden="true" for="appl_specific_1">{{appl_specific_name_1}}</label>
+                  <input aria-hidden="true" type="text" value="{{appl_specific_1}}" id="appl_specific_1">
+              </div>
+              <div class="input-group fluid">
+                  <label aria-hidden="true" for="appl_specific_2">{{appl_specific_name_2}}</label>
+                  <input aria-hidden="true" type="text" value="{{appl_specific_2}}" id="appl_specific_2">
+              </div>
+          </fieldset>
       </div>
       <input type="radio" name="navtabs" id="tab3" aria-hidden="true">
       <label for="tab3" aria-hidden="true">System</label>

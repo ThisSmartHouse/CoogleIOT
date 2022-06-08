@@ -40,13 +40,30 @@ extern "C" void __coogle_iot_sketch_timer_callback(void *pArg)
 	__coogle_iot_self->sketchTimerTick = true;
 }
 
-CoogleIOT::CoogleIOT(int statusPin)
+CoogleIOT::CoogleIOT(int statusPin) : Tty(Serial)
 {
-    _statusPin = statusPin;
-    _serial = false;
+	_iot_init(statusPin);
 }
 
-CoogleIOT::CoogleIOT()
+CoogleIOT::CoogleIOT(Print& the_tty) : Tty(the_tty)
+{
+	_iot_init(-1);
+}
+
+CoogleIOT::CoogleIOT(int statusPin, Print& the_tty) : Tty(the_tty)
+{
+	_iot_init(statusPin);
+}
+
+
+void CoogleIOT::_iot_init(int statusPin)
+{
+	_statusPin = statusPin;
+	_serial = false;
+}
+
+
+CoogleIOT::CoogleIOT() : Tty(Serial)
 {
 	CoogleIOT(-1);
 }
@@ -61,7 +78,9 @@ CoogleIOT::~CoogleIOT()
 	}
 
 	SPIFFS.end();
-	Serial.end();
+	if (&Tty == &Serial) {
+		Serial.end();
+	}
 
 	if(_firmwareClientActive) {
 		os_timer_disarm(&firmwareUpdateTimer);
@@ -239,7 +258,7 @@ CoogleIOT& CoogleIOT::log(String msg, CoogleIOT_LogSeverity severity)
 	String logMsg = buildLogMsg(msg, severity);
 
 	if(_serial) {
-		Serial.println(logMsg);
+		Tty.println(logMsg);
 	}
 
 	if(!logFile) {
@@ -254,7 +273,7 @@ CoogleIOT& CoogleIOT::log(String msg, CoogleIOT_LogSeverity severity)
 
 		if(!logFile) {
 			if(_serial) {
-				Serial.println("ERROR Could not open SPIFFS log file!");
+				Tty.println("ERROR Could not open SPIFFS log file!");
 			}
 			return *this;
 		}
@@ -291,12 +310,14 @@ void CoogleIOT::loop()
 
 		if((wifiFailuresCount > COOGLEIOT_MAX_WIFI_ATTEMPTS) && (WiFi.status() != WL_CONNECTED)) {
 			info("Failed too many times to establish a WiFi connection. Restarting Device.");
+			clear_ip_config();
 			restartDevice();
 			return;
 		}
 
 		if((mqttFailuresCount > COOGLEIOT_MAX_MQTT_ATTEMPTS) && !mqttClient->connected()) {
 			info("Failed too many times to establish a MQTT connection. Restarting Device.");
+			clear_ip_config();
 			restartDevice();
 			return;
 		}
@@ -337,7 +358,44 @@ void CoogleIOT::loop()
 
 		wifiFailuresCount = 0;
 
-		if(!mqttClient->connected()) {
+		if(mqttClient && (!mqttClient->connected())) {
+
+			switch (mqttClient->state()) {
+			case MQTT_CONNECTION_TIMEOUT:
+				error("MQTT Failure: Connection Timeout (server didn't respond within keepalive time)");
+				break;
+			case MQTT_CONNECTION_LOST:
+				error("MQTT Failure: Connection Lost (the network connection was broken)");
+				break;
+			case MQTT_CONNECT_FAILED:
+				error("MQTT Failure: Connection Failed (the network connection failed)");
+				break;
+			case MQTT_DISCONNECTED:
+				error("MQTT Failure: Disconnected (the client is disconnected)");
+				break;
+			case MQTT_CONNECTED:
+				error("MQTT reported as not connected, but state says it is!");
+				break;
+			case MQTT_CONNECT_BAD_PROTOCOL:
+				error("MQTT Failure: Bad Protocol (the server doesn't support the requested version of MQTT)");
+				break;
+			case MQTT_CONNECT_BAD_CLIENT_ID:
+				error("MQTT Failure: Bad Client ID (the server rejected the client identifier)");
+				break;
+			case MQTT_CONNECT_UNAVAILABLE:
+				error("MQTT Failure: Unavailable (the server was unable to accept the connection)");
+				break;
+			case MQTT_CONNECT_BAD_CREDENTIALS:
+				error("MQTT Failure: Bad Credentials (the username/password were rejected)");
+				break;
+			case MQTT_CONNECT_UNAUTHORIZED:
+				error("MQTT Failure: Unauthorized (the client was not authorized to connect)");
+				break;
+			default:
+				error("MQTT Failure: Unknown Error");
+				break;
+			}
+			//----------------------------------------------------------------------------------------------------------------
 			yield();
 			if(!connectToMQTT()) {
 				mqttFailuresCount++;
@@ -347,7 +405,9 @@ void CoogleIOT::loop()
 		if(mqttClientActive) {
 			mqttFailuresCount = 0;
 			yield();
-			mqttClient->loop();
+			if (mqttClient) {
+				bool b = mqttClient->loop();
+			}
 		}
 
 		if(ntpClientActive) {
@@ -389,16 +449,20 @@ void CoogleIOT::loop()
 		}
 	}
 
-	yield();
-	webServer->loop();
+loopWebServer();
 
-	yield();
 #ifndef ARDUINO_ESP8266_ESP01
 	if(dnsServerActive) {
 		dnsServer.processNextRequest();
 	}
 #endif
 
+}
+
+void CoogleIOT::loopWebServer() {
+	yield();
+	webServer->loop();
+	yield();
 }
 
 CoogleIOT& CoogleIOT::flashSOS()
@@ -548,6 +612,8 @@ bool CoogleIOT::initialize()
 
 		eeprom.reset();
 		eeprom.setApp((const byte *)COOGLEIOT_MAGIC_BYTES);
+		setMQTTSpecific1Name(COOGLEIOT_DEFAULT_APP_SPECIFIC_NAME_1);
+		setMQTTSpecific2Name(COOGLEIOT_DEFAULT_APP_SPECIFIC_NAME_2);
 		SPIFFS.format();
 	}
 
@@ -558,11 +624,6 @@ bool CoogleIOT::initialize()
 	} else {
 		info("Log file successfully opened");
 	}
-
-	WiFi.disconnect();
-	WiFi.setAutoConnect(false);
-	WiFi.setAutoReconnect(true);
-	WiFi.mode(WIFI_AP_STA);
 
 	localAPName = getAPName();
 
@@ -634,7 +695,7 @@ bool CoogleIOT::verifyFlashConfiguration()
 	} else {
 		debug("Flash Chip Configuration Verified: OK");
 	}
-
+	return true;
 }
 
 void CoogleIOT::enableConfigurationMode()
@@ -796,6 +857,57 @@ String CoogleIOT::getMQTTLWTMessage()
 	return filterAscii(retval);
 }
 
+//---
+String CoogleIOT::getMQTTAppSpecific1()
+{
+	char mqtt[COOGLEIOT_MQTT_APP_SPECIFIC_1_MAXLEN];
+
+	if(!eeprom.readString(COOGLEIOT_MQTT_APP_SPECIFIC_1_ADDR, mqtt, COOGLEIOT_MQTT_APP_SPECIFIC_1_MAXLEN)) {
+		error("Failed to read app specific (1) from EEPROM");
+	}
+
+	String retval(mqtt);
+	return filterAscii(retval);
+}
+
+String CoogleIOT::getMQTTAppSpecific2()
+{
+	char mqtt[COOGLEIOT_MQTT_APP_SPECIFIC_2_MAXLEN];
+
+	if(!eeprom.readString(COOGLEIOT_MQTT_APP_SPECIFIC_2_ADDR, mqtt, COOGLEIOT_MQTT_APP_SPECIFIC_2_MAXLEN)) {
+		error("Failed to read app specific (2) from EEPROM");
+	}
+
+	String retval(mqtt);
+	return filterAscii(retval);
+}
+
+String CoogleIOT::getMQTTSpecific1Name()
+{
+	char mqtt[COOGLEIOT_MQTT_SPECIFIC_1_NAME_MAXLEN];
+
+	if (!eeprom.readString(COOGLEIOT_MQTT_SPECIFIC_1_NAME_ADDR, mqtt, COOGLEIOT_MQTT_SPECIFIC_1_NAME_MAXLEN)) {
+		error("Failed to read app specific data name (1) from EEPROM");
+	}
+
+	String retval(mqtt);
+	return filterAscii(retval);
+}
+
+String CoogleIOT::getMQTTSpecific2Name()
+{
+	char mqtt[COOGLEIOT_MQTT_SPECIFIC_2_NAME_MAXLEN];
+
+	if (!eeprom.readString(COOGLEIOT_MQTT_SPECIFIC_2_NAME_ADDR, mqtt, COOGLEIOT_MQTT_SPECIFIC_2_NAME_MAXLEN)) {
+		error("Failed to read app specific data name (2) from EEPROM");
+	}
+
+	String retval(mqtt);
+	return filterAscii(retval);
+}
+//---
+
+
 int CoogleIOT::getMQTTPort()
 {
 	int mqtt;
@@ -807,6 +919,7 @@ int CoogleIOT::getMQTTPort()
 	return mqtt;
 }
 
+
 CoogleIOT& CoogleIOT::setMQTTPort(int port)
 {
 	if(!eeprom.writeInt(COOGLEIOT_MQTT_PORT_ADDR, port)) {
@@ -815,6 +928,7 @@ CoogleIOT& CoogleIOT::setMQTTPort(int port)
 
 	return *this;
 }
+
 
 CoogleIOT& CoogleIOT::setFirmwareUpdateUrl(String s)
 {
@@ -896,8 +1010,8 @@ CoogleIOT& CoogleIOT::setMQTTLWTTopic(String s)
 	if(!eeprom.writeString(COOGLEIOT_MQTT_LWT_TOPIC_ADDR, s)) {
 		error("Failed to write MQTT Last Will Topic to EEPROM");
 	}
-	Serial.print("Setting MQTT TOPIC: ");
-	Serial.println(s);
+	Tty.print("Setting MQTT TOPIC: ");
+	Tty.println(s);
 	return *this;
 }
 
@@ -914,6 +1028,65 @@ CoogleIOT& CoogleIOT::setMQTTLWTMessage(String s)
 
 	return *this;
 }
+
+//--
+CoogleIOT& CoogleIOT::setMQTTAppSpecific1(String s)
+{
+	if(s.length() > COOGLEIOT_MQTT_APP_SPECIFIC_1_MAXLEN) {
+		warn("Attempted to write beyond max length for app specific data 1");
+		return *this;
+	}
+
+	if(!eeprom.writeString(COOGLEIOT_MQTT_APP_SPECIFIC_1_ADDR, s)) {
+		error("Failed to write MQTT app specific data 1");
+	}
+
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::setMQTTAppSpecific2(String s)
+{
+	if(s.length() > COOGLEIOT_MQTT_APP_SPECIFIC_2_MAXLEN) {
+		warn("Attempted to write beyond max length for app specific data 2");
+		return *this;
+	}
+
+	if(!eeprom.writeString(COOGLEIOT_MQTT_APP_SPECIFIC_2_ADDR, s)) {
+		error("Failed to write MQTT app specific data 2");
+	}
+
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::setMQTTSpecific1Name(String s)
+{
+	if (s.length() > COOGLEIOT_MQTT_SPECIFIC_1_NAME_MAXLEN) {
+		warn("Attempted to write beyond max length for app specific NAME 1");
+		return *this;
+	}
+
+	if (!eeprom.writeString(COOGLEIOT_MQTT_SPECIFIC_1_NAME_ADDR, s)) {
+		error("Failed to write MQTT app specific data 1");
+	}
+
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::setMQTTSpecific2Name(String s)
+{
+	if (s.length() > COOGLEIOT_MQTT_SPECIFIC_2_NAME_MAXLEN) {
+		warn("Attempted to write beyond max length for app specific NAME 2");
+		return *this;
+	}
+
+	if (!eeprom.writeString(COOGLEIOT_MQTT_SPECIFIC_2_NAME_ADDR, s)) {
+		error("Failed to write MQTT app specific data 2");
+	}
+
+	return *this;
+}
+//--
+
 
 CoogleIOT& CoogleIOT::setRemoteAPName(String s)
 {
@@ -983,9 +1156,19 @@ void CoogleIOT::checkForFirmwareUpdate()
 	if(!URL.GetPort(&port)) {
 		port = 80;
 	}
-
-	firmwareUpdateStatus = ESPhttpUpdate.update(URL.m_Host.c_str(), port, URL.m_Path.c_str(), COOGLEIOT_VERSION);
-
+	// 15 Sep 2021 MRF
+	// From ESP8266 core 3.0.0 version onwards the following prototype has been deprecated:
+	//     HTTPUpdateResult ESPhttpUpdate::update(const char* host, int& port, const char* uri, const char * currentVersion);
+	// Old call:
+	//     firmwareUpdateStatus = ESPhttpUpdate.update(URL.m_Host.c_str(), port, URL.m_Path.c_str(), COOGLEIOT_VERSION);
+	// Using prototype:
+	//     HTTPUpdateResult ESP8266HTTPUpdate::update(WiFiClient & client, const String & host, uint16_t port, const String & uri, const String & currentVersion)
+	//
+	const String ver_str = COOGLEIOT_VERSION;
+	const String uri_str = URL.m_Path.c_str();
+	const String host_str = URL.m_Host.c_str();
+	firmwareUpdateStatus = ESPhttpUpdate.update(espClient, host_str, port, uri_str, ver_str);  
+	//
 	os_intr_unlock();
 }
 
@@ -1229,6 +1412,14 @@ bool CoogleIOT::connectToSSID()
 
 	info("Connecting to remote AP");
 
+	//> MRF 2021.12.04 MOVED HERE FORM initialize()
+	WiFi.disconnect(true);      // MRF 2021.12.04 added (true)
+	WiFi.mode(WIFI_AP_STA);
+	clear_ip_config();
+	WiFi.setAutoConnect(false);
+	WiFi.setAutoReconnect(true);
+	//<
+
 	if(remoteAPPassword.length() == 0) {
 		warn("No Remote AP Password Specified!");
 
@@ -1251,6 +1442,10 @@ bool CoogleIOT::connectToSSID()
 		return false;
 	}
 
+	if (static_address_set) {
+		update_ip_config();  // Configure  static IPparameters if set by user
+	}
+
 	info("Connected to Remote Access Point!");
 	info("Our IP Address is:");
 	info(WiFi.localIP().toString());
@@ -1265,30 +1460,27 @@ CoogleIOT& CoogleIOT::enableSerial()
 
 CoogleIOT& CoogleIOT::enableSerial(int baud)
 {
-    if(!Serial) {
-
-      Serial.begin(baud);
-
-      while(!Serial) {
-          yield();
-      }
-
-    }
-
+	if (&Tty == &Serial) {
+		if(!Serial) {
+			Serial.begin(baud);
+			while(!Serial) {
+				yield();
+			}
+	    }
+	}
     _serial = true;
     return *this;
 }
 
 CoogleIOT& CoogleIOT::enableSerial(int baud, SerialConfig config)
 {
-    if(!Serial) {
-
-      Serial.begin(baud, config);
-
-      while(!Serial) {
-          yield();
-      }
-
+	if (&Tty == &Serial) {
+		if (!Serial) {
+			Serial.begin(baud, config);
+			while (!Serial) {
+				yield();
+			}
+		}
     }
 
     _serial = true;
@@ -1297,16 +1489,49 @@ CoogleIOT& CoogleIOT::enableSerial(int baud, SerialConfig config)
 
 CoogleIOT& CoogleIOT::enableSerial(int baud, SerialConfig config, SerialMode mode)
 {
-    if(!Serial) {
-
-      Serial.begin(baud, config, mode);
-
-      while(!Serial) {
-          yield();
-      }
-
+	if (&Tty == &Serial) {
+		if (!Serial) {
+			Serial.begin(baud, config, mode);
+			while (!Serial) {
+				yield();
+			}
+		}
     }
 
     _serial = true;
     return *this;
+}
+
+CoogleIOT&  CoogleIOT::setStaticAddress(IPAddress address, IPAddress gateway, IPAddress subnet_mask, IPAddress dns1, IPAddress dns2)
+{
+	static_address_set = true;
+	static_address = address;
+	static_gateway = gateway;
+	static_subnet = subnet_mask;
+	static_dns1 = dns1;
+	static_dns2 = dns2;
+	update_ip_config();
+	return *this;
+}
+
+CoogleIOT& CoogleIOT::clearStaticAddress()
+{
+	static_address_set = false;
+	static_address = static_gateway = static_subnet = static_dns1 = static_dns2 = IPAddress(0UL, 0UL, 0UL, 0UL);
+	clear_ip_config();
+	return *this;
+}
+
+
+void  CoogleIOT::clear_ip_config() 
+{
+	ESP.eraseConfig();           
+	WiFi.config(0UL, 0UL, 0UL, 0UL, 0UL);		
+}
+
+void CoogleIOT::update_ip_config()
+{
+	if(static_address_set) 	{
+			WiFi.config(static_address, static_gateway, static_subnet, static_dns1,static_dns2);	
+	}
 }

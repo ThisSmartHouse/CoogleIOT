@@ -94,6 +94,14 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
             <label aria-hidden="true" for="mqtt_lwt_message">MQTT LWT Message</label>
             <input aria-hidden="true" type="text" value="{{mqtt_lwt_message}}" id="mqtt_lwt_message" placeholder="LWT message">
           </div>
+          <div class="input-group fluid">
+            <label aria-hidden="true" for="appl_specific_1">{{appl_specific_name_1}}</label>
+            <input aria-hidden="true" type="text" value="{{appl_specific_1}}" id="appl_specific_1">
+          </div>
+          <div class="input-group fluid">
+            <label aria-hidden="true" for="appl_specific_2">{{appl_specific_name_2}}</label>
+            <input aria-hidden="true" type="text" value="{{appl_specific_2}}" id="appl_specific_2">
+          </div>
         </fieldset>
       </div>
       <input type="radio" name="navtabs" id="tab3" aria-hidden="true">
@@ -205,6 +213,8 @@ const char WEBPAGE_Home[] PROGMEM = R"=====(
             'mqtt_client_id' : $('#mqtt_client_id').val(),
             'mqtt_lwt_topic' : $('#mqtt_lwt_topic').val(),
             'mqtt_lwt_message' : $('#mqtt_lwt_message').val(),
+			'appl_specific_1' : $('#appl_specific_1').val(),
+			'appl_specific_2' : $('#appl_specific_2').val(),
             'firmware_url' : $('#firmware_url').val()
           }
 

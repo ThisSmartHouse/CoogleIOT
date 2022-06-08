@@ -267,8 +267,8 @@ CoogleIOT is an evolving code base, so this API may change before this document 
 
 ```
   // Chaining method calls together
-  iot->enableSerial(115200)
-     ->initialize();
+  iot->enableSerial(115200)  // returns a reference to *iot
+    .initialize();
 ```
 
 `void CoogleIOT::CoogleIOT(status_led_pin = NULL)` 
@@ -338,6 +338,9 @@ by passing 0 as the interval. Useful for taking a sensor reading every X seconds
 
 `void CoogleIOT::checkForFirmwareUpdate()`
 Performs a check against the specified Firmware Server endpoint for a new version of this device's firmware. If a new version exists it performs the upgrade.
+
+`void CoogleIOT::loopWebServer()`
+Performs configuration portal tasks only. To be used within a loop to allow the user provide  a valid configuration in the portal and and then restart. Useful when the current configuration has errors or is no loger valid; see the `DHT11Sensor` example.
 
 The following getters/setters are pretty self explainatory. Each getter will return a `String` object of the value from EEPROM (or another primiative data type), with a matching setter:
 
@@ -417,3 +420,21 @@ The default Webserver port for the configuration system
 
 `#define COOGLEIOT_DEBUG`
 If defined, it will enable debugging mode for CoogleIOT which will dump lots of debugging data to the Serial port (if enabled)
+
+## Application specific data
+
+Besides CoogleIOT's specific configuration above, the user can provide two additional strings which API exposes for the appllication to read and write:
+
+`String getMQTTAppSpecific1();`
+`String getMQTTAppSpecific2();`
+`CoogleIOT& setMQTTAppSpecific1(String);`
+`CoogleIOT& setMQTTAppSpecific2(String);`
+
+The values can be initially through the configuration portal as well. The strings used to label the input fields can be set by the application during startup,
+
+`String getMQTTSpecific1Name();`
+`String getMQTTSpecific2Name();`
+`CoogleIOT& setMQTTSpecific1Name(String);`
+`CoogleIOT& setMQTTSpecific2Name(String);`
+
+

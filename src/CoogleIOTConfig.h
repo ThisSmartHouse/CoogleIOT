@@ -3,7 +3,7 @@
 
 //#define COOGLEIOT_DEBUG
 
-#define COOGLEIOT_VERSION "1.3.1"
+#define COOGLEIOT_VERSION "1.3.2"
 
 #ifndef COOGLEIOT_SPIFFS_LOGFILE
 #define COOGLEIOT_SPIFFS_LOGFILE "/coogleiot-log.txt"
@@ -93,6 +93,14 @@
 
 #ifndef COOGLEIOT_DEVICE_TOPIC
 #define COOGLEIOT_DEVICE_TOPIC "/coogleiot/devices"
+#endif
+
+#ifndef COOGLEIOT_DEFAULT_APP_SPECIFIC_NAME_1
+#define COOGLEIOT_DEFAULT_APP_SPECIFIC_NAME_1 "App. specific data [1]"
+#endif
+
+#ifndef COOGLEIOT_DEFAULT_APP_SPECIFIC_NAME_2
+#define COOGLEIOT_DEFAULT_APP_SPECIFIC_NAME_2 "App. specific data [2]"
 #endif
 
 #ifdef COOGLEIOT_DEBUG

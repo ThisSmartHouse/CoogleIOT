@@ -166,7 +166,10 @@ void CoogleIOTWebserver::handleRoot()
 	String page(FPSTR(WEBPAGE_Home));
 	String ap_name, ap_password, ap_remote_name, ap_remote_password,
 	       mqtt_host, mqtt_username, mqtt_password, mqtt_client_id,
-				 mqtt_lwt_topic, mqtt_lwt_message, firmware_url, mqtt_port,
+				 mqtt_lwt_topic, mqtt_lwt_message, 
+				 appl_specific_1, appl_specific_2,
+				 appl_specific_name_1, appl_specific_name_2,
+				 firmware_url, mqtt_port,
 				 local_ip, mac_address, wifi_status, logs;
 
 	ap_name = iot->getAPName();
@@ -179,6 +182,12 @@ void CoogleIOTWebserver::handleRoot()
 	mqtt_client_id = iot->getMQTTClientId();
 	mqtt_lwt_topic = iot->getMQTTLWTTopic();
 	mqtt_lwt_message = iot->getMQTTLWTMessage();
+	//--
+	appl_specific_1 = iot->getMQTTAppSpecific1();
+	appl_specific_2 = iot->getMQTTAppSpecific2();
+	appl_specific_name_1 = iot->getMQTTSpecific1Name();
+	appl_specific_name_2 = iot->getMQTTSpecific2Name();
+	//--
 	firmware_url = iot->getFirmwareUpdateUrl();
 	mqtt_port = String(iot->getMQTTPort());
 	local_ip = WiFi.localIP().toString();
@@ -195,6 +204,13 @@ void CoogleIOTWebserver::handleRoot()
 	page.replace(F("{{mqtt_client_id}}"), htmlEncode(mqtt_client_id));
 	page.replace(F("{{mqtt_lwt_topic}}"), htmlEncode(mqtt_lwt_topic));
 	page.replace(F("{{mqtt_lwt_message}}"), htmlEncode(mqtt_lwt_message));
+	//-
+	
+	page.replace(F("{{appl_specific_1}}"), htmlEncode(appl_specific_1));
+	page.replace(F("{{appl_specific_2}}"), htmlEncode(appl_specific_2));
+	page.replace(F("{{appl_specific_name_1}}"), htmlEncode(appl_specific_name_1));
+	page.replace(F("{{appl_specific_name_2}}"), htmlEncode(appl_specific_name_2));
+	//-
 	page.replace(F("{{firmware_url}}"), htmlEncode(firmware_url));
 	page.replace(F("{{mqtt_port}}"), htmlEncode(mqtt_port));
 	page.replace(F("{{coogleiot_version}}"), htmlEncode(COOGLEIOT_VERSION));
@@ -331,7 +347,9 @@ void CoogleIOTWebserver::handleSubmit()
 
 	String ap_name, ap_password, remote_ap_name, remote_ap_password,
 	       mqtt_host, mqtt_port, mqtt_username, mqtt_password, mqtt_client_id,
-		   	mqtt_lwt_topic, mqtt_lwt_message,firmware_url;
+		   	mqtt_lwt_topic, mqtt_lwt_message,
+			appl_specific_1, appl_specific_2,
+			firmware_url;
 
 	bool success = true;
 
@@ -346,6 +364,10 @@ void CoogleIOTWebserver::handleSubmit()
 	mqtt_client_id = webServer->arg("mqtt_client_id");
 	mqtt_lwt_topic = webServer->arg("mqtt_lwt_topic");
 	mqtt_lwt_message = webServer->arg("mqtt_lwt_message");
+	//-
+	appl_specific_1 = webServer->arg("appl_specific_1");
+	appl_specific_2 = webServer->arg("appl_specific_2");
+	//-
 	firmware_url = webServer->arg("firmware_url");
 
 	if(ap_name.length() > 0) {
@@ -442,6 +464,25 @@ void CoogleIOTWebserver::handleSubmit()
 			success = false;
 		}
 	}
+
+	//---
+	if(appl_specific_1.length() > 0) {
+		if(appl_specific_1.length() < COOGLEIOT_MQTT_APP_SPECIFIC_1_MAXLEN) {
+			iot->setMQTTAppSpecific1(appl_specific_1);
+		} else {
+			errors.add("App specific data (1) was too long");
+			success = false;
+		}
+	}
+	if(appl_specific_2.length() > 0) {
+		if(appl_specific_2.length() < COOGLEIOT_MQTT_APP_SPECIFIC_2_MAXLEN) {
+			iot->setMQTTAppSpecific2(appl_specific_2);
+		} else {
+			errors.add("App specific data (2) was too long");
+			success = false;
+		}
+	}
+	//---
 
 	if(firmware_url.length() > 0) {
 		if(firmware_url.length() < COOGLEIOT_FIRMWARE_UPDATE_URL_MAXLEN) {
